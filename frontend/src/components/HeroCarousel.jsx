@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion, useMotionValue, useSpring, useTransform, useScroll } from "framer-motion";
 import { useCatalogue } from "../context/CatalogueContext";
 import { Link } from "react-router-dom";
 import { MessageCircle, MapPin, BadgeCheck, Star } from "lucide-react";
@@ -20,6 +20,11 @@ const MaskedLine = ({ children, delay = 0, className = "" }) => (
 export const HeroCarousel = () => {
   const { store, heroSlides } = useCatalogue();
   const [active, setActive] = useState(0);
+  const sectionRef = useRef(null);
+
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
+  const watermarkY = useTransform(scrollYProgress, [0, 1], [0, -120]);
+  const watermarkOpacity = useTransform(scrollYProgress, [0, 1], [0.05, 0.14]);
 
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
@@ -40,10 +45,13 @@ export const HeroCarousel = () => {
   };
 
   return (
-    <section data-testid="hero-carousel" className="relative bg-ivory overflow-hidden">
-      <span className="font-marcellus absolute -bottom-8 -right-4 text-[24vw] leading-none text-gold/[0.05] select-none pointer-events-none">
+    <section ref={sectionRef} data-testid="hero-carousel" className="relative bg-ivory overflow-hidden">
+      <motion.span
+        style={{ y: watermarkY, opacity: watermarkOpacity }}
+        className="font-marcellus absolute -bottom-8 -right-4 text-[24vw] leading-none text-gold select-none pointer-events-none"
+      >
         1987
-      </span>
+      </motion.span>
 
       <div className="max-w-7xl mx-auto px-5 md:px-12 pt-8 pb-14 md:pt-14 md:pb-20 grid lg:grid-cols-12 gap-8 lg:gap-0 items-center">
         <div className="lg:col-span-6 relative z-10 order-2 lg:order-1 lg:-mr-24">

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, Gem, Landmark, Star, ArrowRight, Play, MapPin, Phone, Clock, MessageCircle } from "lucide-react";
-import { Reveal } from "../components/Reveal";
+import { Reveal, LineDraw } from "../components/Reveal";
 import { ProductCard } from "../components/ProductCard";
 import { useCatalogue } from "../context/CatalogueContext";
 
@@ -41,7 +41,7 @@ const SectionHead = ({ numeral, kicker, title, italic }) => (
       <h2 className="relative font-cinzel text-3xl md:text-5xl tracking-[0.12em] uppercase mt-4 leading-tight">
         {title} {italic && <span className="font-cormorant normal-case tracking-normal gold-foil-text">{italic}</span>}
       </h2>
-      <div className="relative h-px w-24 bg-gold/60 mt-7" />
+      <LineDraw className="relative h-px w-24 bg-gold/60 mt-7" delay={0.25} />
     </div>
   </Reveal>
 );
@@ -104,10 +104,10 @@ export const FeaturedStrip = () => {
         </span>
       </div>
       <div data-testid="featured-scroll" className="flex gap-6 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-4 -mx-5 px-5 md:mx-0 md:px-0">
-        {featured.map((prod) => (
-          <div key={prod.id} className="snap-start shrink-0 w-[270px] md:w-[310px]">
+        {featured.map((prod, i) => (
+          <Reveal key={prod.id} delay={i * 0.06} className="snap-start shrink-0 w-[270px] md:w-[310px]">
             <ProductCard product={prod} testid={`featured-card-${prod.id}`} />
-          </div>
+          </Reveal>
         ))}
       </div>
     </div>
@@ -127,8 +127,8 @@ export const TrustBar = () => (
     <div className="max-w-7xl mx-auto px-5 md:px-12 py-14 md:py-16 grid grid-cols-2 lg:grid-cols-4 gap-y-12 lg:gap-y-0 lg:divide-x lg:divide-gold/25">
       {TRUST.map((t, i) => (
         <Reveal key={t.title} delay={i * 0.1}>
-          <div data-testid={`trust-item-${i}`} className="text-center px-4">
-            <t.icon size={24} strokeWidth={1} className="text-gold-dark mx-auto" />
+          <div data-testid={`trust-item-${i}`} className="group text-center px-4 transition-transform duration-500 hover:-translate-y-1">
+            <t.icon size={24} strokeWidth={1} className="text-gold-dark mx-auto transition-all duration-500 group-hover:scale-125 group-hover:text-wine" />
             <h3 className="font-cinzel text-sm tracking-[0.3em] uppercase mt-5">{t.title}</h3>
             <p className="font-jost text-ink/70 text-xs mt-2">{t.sub}</p>
           </div>
@@ -182,10 +182,11 @@ export const Heritage = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-px bg-gold/25 border border-gold/25 mt-20">
         {CHAPTERS.map(([num, title, text], i) => (
           <Reveal key={num} delay={i * 0.1}>
-            <div data-testid={`chapter-${num}`} className="bg-white p-8 md:p-10 h-full">
-              <span className="font-marcellus text-4xl gold-foil-text">{num}</span>
-              <h3 className="font-marcellus text-lg tracking-[0.15em] uppercase mt-5">{title}</h3>
+            <div data-testid={`chapter-${num}`} className="group bg-white p-8 md:p-10 h-full transition-colors duration-500 hover:bg-cream/50">
+              <span className="font-marcellus text-4xl gold-foil-text inline-block transition-transform duration-500 group-hover:-translate-y-1">{num}</span>
+              <h3 className="font-marcellus text-lg tracking-[0.15em] uppercase mt-5 transition-colors duration-500 group-hover:text-wine">{title}</h3>
               <p className="font-jost text-sm text-ink/60 leading-relaxed mt-3">{text}</p>
+              <span className="mt-6 block h-px w-8 bg-gold/50 transition-all duration-500 group-hover:w-16" />
             </div>
           </Reveal>
         ))}

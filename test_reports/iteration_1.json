@@ -1,0 +1,30 @@
+{
+  "summary": "Frontend-only verification of the image-attach bug fix (free-tier, client-side compression to data URL) and the motion polish pass. Admin login with the supplied Firebase credentials succeeded. Product editor upload, existing-product upload (append), non-image rejection, and Hero Banner slide upload ALL attach and preview correctly as 'data:image/jpeg;base64,...' with zero console errors. Public home page renders all 7 sections with scroll-reveal working on desktop (1920x1080) and mobile (390x844), no broken images, no horizontal overflow, no console errors. NO writes were performed - editor-save-btn / hero-save-btn / category-save-btn / delete / Import Sample Catalogue were never clicked; the appended test image was removed from the existing-product form and the modal was closed via editor-close-btn.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "saveSlides() (Hero Banner 'Publish Banner') has NO 1MB Firestore doc-size guard and NO try/catch, unlike saveProduct(). 3 slides x up to ~480KB data URLs = ~1.44MB, which exceeds Firestore's 1MB document limit. The setDoc will reject, the promise is unhandled, and setSaving(false) never runs so the button stays stuck on 'Saving...' with no error toast. Add the same size check + try/catch/finally used in saveProduct(). NOT reproduced live (writes were forbidden) - found by code review, HIGH risk.",
+    "saveRates() and saveCategory() likewise have no try/catch; a Firestore rules rejection leaves saving=true forever and shows a false success toast. Wrap in try/catch/finally and only notify on success.",
+    "Since images are now data URLs stored inside Firestore product docs, the public catalogue read payload grows fast (each product doc up to ~1MB). Consider capping images per product in the UI (the editor currently allows unlimited appends and only warns at save time) and/or lazy-loading product detail docs.",
+    "Remove the now-unused eslint-disable directive at AdminDashboard.jsx:93 (lint warning)."
+  ],
+  "critical_code_review_comments": [
+    "compressToDataUrl() correctly steps JPEG quality down until <480KB and fills a white background before drawImage (prevents black boxes from transparent PNGs) - implementation is sound and Storage is fully removed.",
+    "Cloudinary path is optional and env-gated; with no REACT_APP_CLOUDINARY_* set it correctly falls through to the free data-URL path.",
+    "saveSlides/saveRates/saveCategory lack the error handling and size guard that saveProduct has - inconsistent and will silently hang the UI.",
+    "Product editor image thumbnails had no data-testid (only the remove button did). Added data-testid=\"editor-image-{i}\" to the thumbnail wrapper for testability."
+  ],
+  "updated_files": ["/app/frontend/src/pages/admin/AdminDashboard.jsx"],
+  "success_rate": { "backend": "N/A - not requested (serverless Firebase)", "frontend": "100% (all requested scenarios passed)" },
+  "seed_data_creation": "None. No Firestore writes performed. Used existing /tmp/test_jewel.jpg plus a throwaway /tmp/not_an_image.txt for negative-path validation.",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@bagmarjewellers.com / Bagmar@1987 - VALID, login works. Note: login form testids are admin-email-input / admin-password-input / admin-login-submit (not login-email/login-password/login-submit).",
+  "context_for_next_testing_agent": "App is wired to the owner's LIVE production Firestore - never click editor-save-btn, hero-save-btn, category-save-btn, any delete, or seed-import-btn. Verified testids: admin-login-page, admin-email-input, admin-password-input, admin-login-submit, admin-dashboard, admin-nav-{overview|rates|hero|categories|catalogue}, product-add-btn, product-editor, editor-upload-input, editor-image-{i}, editor-image-remove-{i}, editor-close-btn, hero-slide-editor-{i}, hero-upload-{i}, hero-image-url-{i}. Live Firestore currently has 52 products and 7 categories. Home page has 9 product cards under featured-section.",
+  "rca_of_the_issue": "Original bug: uploadFile() used Firebase Storage, which requires the paid Blaze plan, so every attach failed. Fix replaces Storage with an in-browser canvas resize (max 1200px) + iterative JPEG quality reduction to keep the data URL under ~480KB, then stores the data URL string directly in the Firestore document. Verified working: uploaded /tmp/test_jewel.jpg produced a 1200x900 preview with src starting 'data:image/jpeg;base64,' in both the product editor and hero slide editor, and the hero-image-url-0 field was populated with the data URL (len 9587). Residual risk is on the WRITE side for hero slides only (no 1MB guard) - see action_items."
+}

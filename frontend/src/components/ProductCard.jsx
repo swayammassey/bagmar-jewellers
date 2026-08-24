@@ -5,7 +5,7 @@ export const ProductCard = ({ product, testid }) => (
   <Link
     to={`/product/${product.id}`}
     data-testid={testid || `product-card-${product.id}`}
-    className="group block bg-white border border-gold/25 transition-shadow duration-700 hover:shadow-[0_20px_40px_-15px_rgba(197,160,89,0.35)]"
+    className="group block bg-white border border-gold/25 transition-[transform,box-shadow,border-color] duration-500 ease-out hover:-translate-y-1.5 hover:border-gold/50 hover:shadow-[0_28px_50px_-18px_rgba(197,160,89,0.4)]"
   >
     <div className="p-1.5 md:p-2 border-b border-gold/20">
       <div className="relative aspect-[4/5] overflow-hidden border border-gold/20">

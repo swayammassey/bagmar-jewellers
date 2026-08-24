@@ -3,8 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Pencil, Trash2, Plus, X, LogOut, Upload, Star, FolderPlus, Database, LayoutDashboard, Coins, Image as ImageIcon, FolderOpen, Gem, ExternalLink } from "lucide-react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { collection, doc, getDocs, setDoc, deleteDoc, writeBatch, query, orderBy } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { auth, db, storage, firebaseReady } from "../../lib/firebase";
+import { auth, db, firebaseReady } from "../../lib/firebase";
 import { Logo } from "../../components/Logo";
 import { resolveImg } from "../../context/CatalogueContext";
 import * as mock from "../../data/catalogue";
@@ -99,8 +98,40 @@ export default function AdminDashboard() {
     navigate("/admin/login");
   };
 
+  // Free-tier: compress + resize in the browser, return a data URL stored directly in Firestore.
+  const compressToDataUrl = (file, maxDim = 1200, quality = 0.7) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("read-failed"));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error("decode-failed"));
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > height && width > maxDim) { height = Math.round((height * maxDim) / width); width = maxDim; }
+          else if (height >= width && height > maxDim) { width = Math.round((width * maxDim) / height); height = maxDim; }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+          // Step quality down until it comfortably fits Firestore's 1MB doc limit.
+          let q = quality;
+          let out = canvas.toDataURL("image/jpeg", q);
+          while (out.length > 300000 && q > 0.4) { q -= 0.08; out = canvas.toDataURL("image/jpeg", q); }
+          resolve(out);
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
   const uploadFile = async (file) => {
-    notify("Uploading photo…");
+    if (!file.type.startsWith("image/")) { notify("Please choose an image file"); return null; }
+    notify("Processing photo…");
+    // Optional: use Cloudinary if configured (better for very large libraries).
     const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
     const preset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
     if (cloudName && preset) {
@@ -110,10 +141,7 @@ export default function AdminDashboard() {
         fd.append("upload_preset", preset);
         const r = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: "POST", body: fd });
         const d = await r.json();
-        if (r.ok && d.secure_url) {
-          notify("Photo uploaded");
-          return d.secure_url;
-        }
+        if (r.ok && d.secure_url) { notify("Photo uploaded"); return d.secure_url; }
         notify("Upload failed — check Cloudinary preset is Unsigned");
         return null;
       } catch {
@@ -121,14 +149,13 @@ export default function AdminDashboard() {
         return null;
       }
     }
+    // Default free path — no paid storage needed. Image is optimised and saved with the product.
     try {
-      const path = `products/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.]/g, "_")}`;
-      const snap = await uploadBytes(ref(storage, path), file);
-      const url = await getDownloadURL(snap.ref);
-      notify("Photo uploaded");
-      return url;
+      const dataUrl = await compressToDataUrl(file);
+      notify("Photo ready");
+      return dataUrl;
     } catch {
-      notify("Upload failed — enable Firebase Storage (needs Blaze plan) or connect Cloudinary");
+      notify("Could not process that image — try a different file");
       return null;
     }
   };
@@ -140,16 +167,30 @@ export default function AdminDashboard() {
 
   const saveRates = async () => {
     setSaving(true);
-    await setDoc(doc(db, "settings", "gold_rates"), settings);
-    setSaving(false);
-    notify("Gold rates updated live on the website");
+    try {
+      await setDoc(doc(db, "settings", "gold_rates"), settings);
+      notify("Gold rates updated live on the website");
+    } catch {
+      notify("Save failed — check your connection and try again");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const saveSlides = async () => {
+    if (JSON.stringify({ slides }).length > 1000000) {
+      notify("Hero images are too large together — re-upload smaller photos");
+      return;
+    }
     setSaving(true);
-    await setDoc(doc(db, "settings", "hero_slides"), { slides });
-    setSaving(false);
-    notify("Hero banner updated on the website");
+    try {
+      await setDoc(doc(db, "settings", "hero_slides"), { slides });
+      notify("Hero banner updated on the website");
+    } catch {
+      notify("Save failed — try smaller hero photos");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const setSlide = (i, patch) => setSlides((s) => s.map((x, j) => (j === i ? { ...x, ...patch } : x)));
@@ -159,11 +200,21 @@ export default function AdminDashboard() {
     const isNew = !form.id;
     const id = isNew ? Math.max(0, ...products.map((p) => p.id || 0)) + 1 : form.id;
     const payload = { ...form, id, price: parseInt(form.price, 10) || 0, mrp: form.mrp ? parseInt(form.mrp, 10) : null };
-    await setDoc(doc(db, "products", String(id)), payload);
-    setSaving(false);
-    setForm(null);
-    load();
-    notify(isNew ? "Product added" : "Product updated");
+    if (JSON.stringify(payload).length > 1000000) {
+      setSaving(false);
+      notify("Too many/large photos for one product — keep it to ~2 images");
+      return;
+    }
+    try {
+      await setDoc(doc(db, "products", String(id)), payload);
+      setForm(null);
+      load();
+      notify(isNew ? "Product added" : "Product updated");
+    } catch {
+      notify("Save failed — try fewer or smaller photos");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const remove = async (id) => {
@@ -178,11 +229,16 @@ export default function AdminDashboard() {
     const slug = catForm.slug || slugify(catForm.name);
     if (!catForm.slug && cats.find((c) => c.slug === slug)) { notify("Category already exists"); return; }
     setSaving(true);
-    await setDoc(doc(db, "categories", slug), { name: catForm.name.trim(), slug, line: catForm.line || "", image: catForm.image || "" });
-    setSaving(false);
-    setCatForm(null);
-    load();
-    notify(catForm.slug ? "Category updated" : "Category added — it is live on the website");
+    try {
+      await setDoc(doc(db, "categories", slug), { name: catForm.name.trim(), slug, line: catForm.line || "", image: catForm.image || "" });
+      setCatForm(null);
+      load();
+      notify(catForm.slug ? "Category updated" : "Category added — it is live on the website");
+    } catch {
+      notify("Save failed — try a smaller category image");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const removeCategory = async (slug) => {
@@ -518,7 +574,7 @@ export default function AdminDashboard() {
                   <label className="font-jost text-[11px] font-medium tracking-wide uppercase text-neutral-600 block mb-3">Images</label>
                   <div className="flex flex-wrap gap-3">
                     {form.images.map((img, i) => (
-                      <div key={i} className="relative w-20 h-20 rounded-lg border border-neutral-200 overflow-hidden">
+                      <div key={i} data-testid={`editor-image-${i}`} className="relative w-20 h-20 rounded-lg border border-neutral-200 overflow-hidden">
                         <img src={resolveImg(img)} alt="" className="w-full h-full object-cover" />
                         <button data-testid={`editor-image-remove-${i}`} onClick={() => setForm({ ...form, images: form.images.filter((_, j) => j !== i) })} className="absolute top-1 right-1 bg-wine text-white rounded-full p-1" aria-label="Remove image"><X size={10} /></button>
                       </div>
