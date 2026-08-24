@@ -22,6 +22,12 @@ Luxury jewellery CATALOGUE website (NOT ecommerce — WhatsApp "Enquire" buttons
 ## Done (2026-06)
 - Pulled full repo into this Emergent environment, wired frontend/.env with Firebase config, installed deps (firebase, lenis), running via supervisor.
 - Verified home, collections, product, admin login all render with live Firestore data.
+- Free-tier admin image upload: in-browser compression (canvas → JPEG data URL, ≤~300KB) stored directly in Firestore; removed Firebase Storage/Blaze dependency. Cloudinary optional via env.
+- Premium motion pass: blur-to-sharp reveals, animated underline draw, hover lift on cards/tiles, trust-icon micro-interactions, hero '1987' scroll parallax.
+- Vercel build fix: aligned date-fns→3.6.0 (react-day-picker peer), pinned ajv@8, forced yarn in vercel.json (installCommand/buildCommand), added .npmrc legacy-peer-deps.
+- Admin "import every login" bug FIXED: added `loaded`/`loadError` states — seed banner now only shows when loaded && !error && empty; loading + retry cards added. Verified 52 products persist, no import flash (testing iteration_3, 100%).
+- Saves made OPTIMISTIC (instant UI, background Firestore write, revert + reopen editor on failure) — fixes "slow save" perception.
+- Confirmed live Firestore state via direct Node query: 52 products, 7 categories, gold_rates + hero_slides present; auth + writes working.
 
 ## Backlog / next
 - P1: Award-worthy motion polish pass (stronger hero kinetic moment, section parallax, micro-interactions).

@@ -52,6 +52,8 @@ export default function AdminDashboard() {
   const [checking, setChecking] = useState(true);
   const [products, setProducts] = useState([]);
   const [cats, setCats] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [settings, setSettings] = useState({ kt22: "", kt24: "" });
   const [slides, setSlides] = useState(null);
   const [form, setForm] = useState(null);
@@ -65,17 +67,24 @@ export default function AdminDashboard() {
   const notify = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2600); };
 
   const load = async () => {
-    const [p, c, s] = await Promise.all([
-      getDocs(query(collection(db, "products"), orderBy("id"))),
-      getDocs(collection(db, "categories")),
-      getDocs(collection(db, "settings")),
-    ]);
-    setProducts(p.docs.map((d) => d.data()));
-    setCats(c.docs.map((d) => d.data()));
-    const rates = s.docs.find((d) => d.id === "gold_rates");
-    if (rates) setSettings({ kt22: rates.data().kt22, kt24: rates.data().kt24 });
-    const hero = s.docs.find((d) => d.id === "hero_slides");
-    setSlides(hero && hero.data().slides?.length ? hero.data().slides : mock.HERO_SLIDES);
+    setLoadError(false);
+    try {
+      const [p, c, s] = await Promise.all([
+        getDocs(query(collection(db, "products"), orderBy("id"))),
+        getDocs(collection(db, "categories")),
+        getDocs(collection(db, "settings")),
+      ]);
+      setProducts(p.docs.map((d) => d.data()));
+      setCats(c.docs.map((d) => d.data()));
+      const rates = s.docs.find((d) => d.id === "gold_rates");
+      if (rates) setSettings({ kt22: rates.data().kt22, kt24: rates.data().kt24 });
+      const hero = s.docs.find((d) => d.id === "hero_slides");
+      setSlides(hero && hero.data().slides?.length ? hero.data().slides : mock.HERO_SLIDES);
+    } catch (e) {
+      setLoadError(true);
+    } finally {
+      setLoaded(true);
+    }
   };
 
   useEffect(() => {
@@ -83,7 +92,7 @@ export default function AdminDashboard() {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user) {
         setMe({ email: user.email });
-        load().catch(() => notify("Could not load data — check Firestore rules"));
+        load();
       } else {
         navigate("/admin/login");
       }
@@ -199,61 +208,65 @@ export default function AdminDashboard() {
   const setSlide = (i, patch) => setSlides((s) => s.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
   const saveProduct = async () => {
-    setSaving(true);
     const isNew = !form.id;
     const id = isNew ? Math.max(0, ...products.map((p) => p.id || 0)) + 1 : form.id;
     const payload = { ...form, id, price: parseInt(form.price, 10) || 0, mrp: form.mrp ? parseInt(form.mrp, 10) : null };
     if (JSON.stringify(payload).length > 1000000) {
-      setSaving(false);
       notify("Too many/large photos for one product — keep it to ~2 images");
       return;
     }
+    const prev = products;
+    const next = (isNew ? [...products, payload] : products.map((p) => (p.id === id ? payload : p))).sort((a, b) => (a.id || 0) - (b.id || 0));
+    const draft = form;
+    setProducts(next); // optimistic — feels instant
+    setForm(null);
+    notify(isNew ? "Product added" : "Product updated");
     try {
       await setDoc(doc(db, "products", String(id)), payload);
-      setForm(null);
-      load();
-      notify(isNew ? "Product added" : "Product updated");
     } catch {
-      notify("Save failed — try fewer or smaller photos");
-    } finally {
-      setSaving(false);
+      setProducts(prev);
+      setForm(draft); // reopen editor so typed changes aren't lost
+      notify("Couldn't save — check your internet and try again");
     }
   };
 
   const remove = async (id) => {
     if (!window.confirm("Delete this piece from the catalogue?")) return;
-    await deleteDoc(doc(db, "products", String(id)));
-    load();
+    const prev = products;
+    setProducts(products.filter((p) => p.id !== id));
     notify("Product deleted");
+    try { await deleteDoc(doc(db, "products", String(id))); }
+    catch { setProducts(prev); notify("Couldn't delete — try again"); }
   };
 
   const saveCategory = async () => {
     if (!catForm.name.trim()) { notify("Category needs a name"); return; }
     const slug = catForm.slug || slugify(catForm.name);
     if (!catForm.slug && cats.find((c) => c.slug === slug)) { notify("Category already exists"); return; }
-    setSaving(true);
-    try {
-      await setDoc(doc(db, "categories", slug), { name: catForm.name.trim(), slug, line: catForm.line || "", image: catForm.image || "" });
-      setCatForm(null);
-      load();
-      notify(catForm.slug ? "Category updated" : "Category added — it is live on the website");
-    } catch {
-      notify("Save failed — try a smaller category image");
-    } finally {
-      setSaving(false);
-    }
+    const record = { name: catForm.name.trim(), slug, line: catForm.line || "", image: catForm.image || "" };
+    const prev = cats;
+    const draft = catForm;
+    const isEdit = !!catForm.slug;
+    setCats(isEdit ? cats.map((c) => (c.slug === slug ? record : c)) : [...cats, record]); // optimistic
+    setCatForm(null);
+    notify(isEdit ? "Category updated" : "Category added — it is live on the website");
+    try { await setDoc(doc(db, "categories", slug), record); }
+    catch { setCats(prev); setCatForm(draft); notify("Couldn't save — try a smaller image or check your internet"); }
   };
 
   const removeCategory = async (slug) => {
     if (!window.confirm("Delete this category? It must have no products in it.")) return;
     const count = products.filter((p) => p.category === slug).length;
     if (count) { notify(`${count} products still use this category`); return; }
-    await deleteDoc(doc(db, "categories", slug));
-    load();
+    const prev = cats;
+    setCats(cats.filter((c) => c.slug !== slug));
     notify("Category removed");
+    try { await deleteDoc(doc(db, "categories", slug)); }
+    catch { setCats(prev); notify("Couldn't delete — try again"); }
   };
 
   const seedCatalogue = async () => {
+    if (products.length > 0) { notify("Your catalogue already has products — no need to import"); return; }
     if (!window.confirm("Import the 52-piece sample catalogue into Firebase? Only do this once, on an empty database.")) return;
     setSeeding(true);
     try {
@@ -355,7 +368,24 @@ export default function AdminDashboard() {
             ))}
           </div>
 
-          {products.length === 0 && (
+          {!loaded && (
+            <div data-testid="loading-card" className="bg-white rounded-xl border border-neutral-200 p-6 md:p-7 mb-6 flex items-center gap-3">
+              <div className="w-4 h-4 border-2 border-wine/30 border-t-wine rounded-full animate-spin" />
+              <p className="font-jost text-sm text-neutral-600">Loading your catalogue from Firebase…</p>
+            </div>
+          )}
+
+          {loaded && loadError && (
+            <div data-testid="load-error-card" className="bg-white rounded-xl border-2 border-red-300 p-6 md:p-7 mb-6">
+              <h2 className="font-marcellus text-lg text-neutral-900">Couldn't load your catalogue</h2>
+              <p className="font-jost text-sm text-neutral-600 leading-relaxed max-w-2xl mt-2">
+                This is usually a network hiccup — your data is safe in Firebase. Please try again. (Do not import the sample catalogue; your products are still there.)
+              </p>
+              <button data-testid="load-retry-btn" onClick={load} className={`${btnWine} mt-5`}>Try Again</button>
+            </div>
+          )}
+
+          {loaded && !loadError && products.length === 0 && (
             <div data-testid="seed-card" className="bg-white rounded-xl border-2 border-dashed border-wine/40 p-6 md:p-7 mb-6">
               <div className="flex items-center gap-3 mb-3">
                 <Database size={18} strokeWidth={1.5} className="text-wine" />

@@ -1,0 +1,24 @@
+{
+  "summary": "Frontend-only verification of the two reported admin bugs on the live preview build (https://precious-lookbook.preview.emergentagent.com). Logged in at /admin/login with admin@bagmarjewellers.com. (1) REPEATED IMPORT PROMPT — FIXED: after login the dashboard rendered, loading-card was observed during the async fetch, and seed-card / seed-import-btn were NEVER present at any point (polled every 100ms for the whole 8s load window). Final state: 52 product rows, 7 category rows, stat-pieces = 52. (2) RELOAD (simulated re-login) — page reloaded, polled every 100ms: seed-card never flashed, 52 rows re-rendered, data persists. (3) OPTIMISTIC SAVE — opened product-edit-1 (Rajwadi Temple Haram, price 462000), changed NOTHING, clicked editor-save-btn: editor detached within ~410ms, toast 'Product updated' shown via admin-toast, product list still 52 rows, seed-card absent, and after waiting 4s there was NO revert/toast-error (confirming the background Firestore setDoc succeeded). (4) CONSOLE: zero errors/warnings and zero pageerrors — only the React DevTools info notice. No destructive actions taken: no seed import, no delete, no create; the only write was the identical no-op re-save of product id 1 as instructed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "AdminDashboard.jsx load() failure path (line 88) only fires a 2.6s toast and never sets loaded=true, so a Firestore/rules/network failure leaves the loading-card spinner on screen forever with no retry. Add an explicit error state + Retry button (and keep seed-card gated on loaded && !error) so a load failure can never be mistaken for an empty database again.",
+    "saveProduct() optimistic revert (line 219) restores the previous list but discards the user's edited form data — on failure consider reopening the editor with the payload so the owner does not lose typed changes.",
+    "AdminDashboard.jsx is 631 lines handling auth, rates, hero, categories, catalogue, image compression and toasts — split into section components/hooks (carried over from iteration 2, still open)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend only)", "frontend": "100% (3/3 scenarios passed, 0 console errors)"},
+  "seed_data_creation": "None. Only write was an identical no-op re-save of existing product id 1 (values unchanged).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@bagmarjewellers.com / Bagmar@1987 (live Firebase auth)",
+  "context_for_next_testing_agent": "Live production Firestore — never click seed-import-btn, product-delete-*, category-delete-*. Key testids: admin-dashboard, loading-card, seed-card, seed-import-btn, product-row-{id}, product-edit-{id}, product-editor, editor-name/price, editor-save-btn, admin-toast (auto-dismiss 2.6s, poll within ~2s). Current live data: 52 products, 7 categories, 15 offers, 9 featured. Both reported bugs (repeat import prompt, slow save) verified fixed.",
+  "rca_of_the_issue": "Original RCA confirmed correct: the seed banner rendered on products.length===0, which is also true during the brief post-login async Firestore fetch, so it flashed on every login. The added `loaded` gate (seed-card only when loaded && products.length===0) plus the loading-card removes the flash — verified by 100ms polling across login and reload. Perceived slow saves are resolved by the optimistic local update + background setDoc (editor closes in ~0.4s, no list blanking, no revert)."
+}
