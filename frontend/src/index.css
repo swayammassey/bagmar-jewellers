@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family: 'Jost', sans-serif;
+    font-weight: 400;
+    background-color: #FAF9F6;
+    color: #1A1A1A;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+    :root {
+        --background: 45 33% 97%;
+        --foreground: 0 0% 10%;
+        --border: 40 14% 90%;
+        --ring: 42 44% 56%;
+        --radius: 0.25rem;
+    }
+    * { @apply border-border; }
+    body { @apply bg-background text-foreground; }
+}
+
+@layer base {
+    [data-debug-wrapper="true"] { display: contents !important; }
+    [data-debug-wrapper="true"] > * {
+        margin: inherit; padding: inherit; gap: inherit;
+        border: inherit; column-gap: inherit; row-gap: inherit;
+    }
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.gold-foil-text {
+    background: linear-gradient(100deg, #A67C00 0%, #E5C158 35%, #C5A059 55%, #F0D98C 75%, #A67C00 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 6s linear infinite;
+}
+
+.grain-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 60;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.hero-slide {
+    transition: opacity 1.4s ease-in-out, transform 8s ease-out;
+}
+
+.btn-lux { position: relative; overflow: hidden; }
+.btn-lux .btn-fill {
+    position: absolute; inset: 0;
+    transform: translateY(102%);
+    transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-lux:hover .btn-fill { transform: translateY(0); }
+
+.lux-link { position: relative; }
+.lux-link::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -3px; height: 1px;
+    background: #C5A059; transform: scaleX(0); transform-origin: center;
+    transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lux-link:hover::after { transform: scaleX(1); }
+
+.vertical-text { writing-mode: vertical-rl; transform: rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
