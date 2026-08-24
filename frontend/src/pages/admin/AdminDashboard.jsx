@@ -129,7 +129,7 @@ export default function AdminDashboard() {
     });
 
   const uploadFile = async (file) => {
-    if (!file.type.startsWith("image/")) { notify("Please choose an image file"); return null; }
+    if (file && file.type && !file.type.startsWith("image/")) { notify("Please choose an image file"); return null; }
     notify("Processing photo…");
     // Optional: use Cloudinary if configured (better for very large libraries).
     const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
@@ -152,10 +152,13 @@ export default function AdminDashboard() {
     // Default free path — no paid storage needed. Image is optimised and saved with the product.
     try {
       const dataUrl = await compressToDataUrl(file);
-      notify("Photo ready");
+      notify("Photo ready — remember to press Save");
       return dataUrl;
     } catch {
-      notify("Could not process that image — try a different file");
+      const isHeic = /\.(heic|heif)$/i.test(file?.name || "") || /heic|heif/i.test(file?.type || "");
+      notify(isHeic
+        ? "iPhone HEIC photos aren't supported — save as JPEG first (Share → Options → JPEG)"
+        : "Could not read that image — try a JPG or PNG");
       return null;
     }
   };
@@ -391,7 +394,7 @@ export default function AdminDashboard() {
                     <label className="block border border-dashed border-neutral-300 rounded-lg py-2.5 text-center font-jost text-[11px] font-medium text-neutral-500 cursor-pointer hover:border-wine hover:text-wine transition-colors mb-3">
                       Upload Photo
                       <input data-testid={`hero-upload-${i}`} type="file" accept="image/*" className="hidden"
-                        onChange={async (e) => { if (!e.target.files[0]) return; const url = await uploadFile(e.target.files[0]); if (url) setSlide(i, { image: url }); }} />
+                        onChange={async (e) => { const f = e.target.files[0]; if (!f) return; const url = await uploadFile(f); if (url) setSlide(i, { image: url }); e.target.value = ""; }} />
                     </label>
                     <input data-testid={`hero-image-url-${i}`} value={s.image} onChange={(e) => setSlide(i, { image: e.target.value })} placeholder="…or image URL" className={`${inputCls} mb-2.5 !text-xs`} />
                     <input data-testid={`hero-kicker-${i}`} value={s.kicker} onChange={(e) => setSlide(i, { kicker: e.target.value })} placeholder="Kicker · e.g. The Heritage Edit" className={`${inputCls} mb-2.5 !text-xs`} />
@@ -416,24 +419,33 @@ export default function AdminDashboard() {
                   <label className={`${btnGhost} border-dashed cursor-pointer whitespace-nowrap`}>
                     Tile Photo
                     <input data-testid="category-upload-input" type="file" accept="image/*" className="hidden"
-                      onChange={async (e) => { if (!e.target.files[0]) return; const url = await uploadFile(e.target.files[0]); if (url) setCatForm({ ...catForm, image: url }); }} />
+                      onChange={async (e) => { const f = e.target.files[0]; if (!f) return; const url = await uploadFile(f); if (url) setCatForm((c) => ({ ...c, image: url })); e.target.value = ""; }} />
                   </label>
                   <button data-testid="category-save-btn" onClick={saveCategory} disabled={saving} className={btnWine}>Save</button>
                   <button onClick={() => setCatForm(null)} className={btnGhost}>Cancel</button>
                 </div>
                 {catForm.image && (
-                  <div className="md:col-span-3 flex items-center gap-3">
-                    <img src={resolveImg(catForm.image)} alt="" className="w-14 h-14 object-cover rounded-md border border-neutral-200" />
-                    <span className="font-jost text-xs text-neutral-500">Tile photo attached</span>
+                  <div className="md:col-span-3 flex items-center gap-4 rounded-lg border border-gold/40 bg-gold/5 p-3">
+                    <img data-testid="category-form-preview" src={resolveImg(catForm.image)} alt="" className="w-24 h-20 object-cover rounded-md border border-neutral-200 shrink-0" />
+                    <div>
+                      <p className="font-jost text-sm font-medium text-wine">New photo selected</p>
+                      <p className="font-jost text-xs text-neutral-500 mt-0.5">Press <span className="font-semibold">Save</span> to publish it to the website.</p>
+                    </div>
                   </div>
                 )}
               </div>
             )}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {cats.map((c) => (
-                <div key={c.slug} data-testid={`category-row-${c.slug}`} className="border border-neutral-200 rounded-lg overflow-hidden">
-                  <div className="aspect-[4/3] overflow-hidden bg-neutral-100">
-                    {c.image && <img src={resolveImg(c.image)} alt={c.name} className="w-full h-full object-cover" />}
+              {cats.map((c) => {
+                const pendingEdit = catForm && catForm.slug === c.slug;
+                const tileImg = pendingEdit && catForm.image ? catForm.image : c.image;
+                return (
+                <div key={c.slug} data-testid={`category-row-${c.slug}`} className={`border rounded-lg overflow-hidden ${pendingEdit ? "border-gold ring-1 ring-gold/40" : "border-neutral-200"}`}>
+                  <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
+                    {tileImg && <img src={resolveImg(tileImg)} alt={c.name} className="w-full h-full object-cover" />}
+                    {pendingEdit && catForm.image && catForm.image !== c.image && (
+                      <span className="absolute top-2 left-2 bg-wine text-white font-jost text-[9px] tracking-[0.15em] uppercase px-2 py-1 rounded">Unsaved photo</span>
+                    )}
                   </div>
                   <div className="p-3.5">
                     <p className="font-marcellus text-sm text-neutral-900 truncate">{c.name}</p>
@@ -448,7 +460,8 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
 
@@ -582,7 +595,7 @@ export default function AdminDashboard() {
                     <label data-testid="editor-upload-label" className="w-20 h-20 rounded-lg border border-dashed border-neutral-300 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-wine hover:text-wine transition-colors text-neutral-500">
                       <Upload size={15} strokeWidth={1.5} />
                       <span className="font-jost text-[9px] font-medium uppercase">Upload</span>
-                      <input data-testid="editor-upload-input" type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files[0] && uploadImage(e.target.files[0])} />
+                      <input data-testid="editor-upload-input" type="file" accept="image/*" className="hidden" onChange={async (e) => { const f = e.target.files[0]; if (f) await uploadImage(f); e.target.value = ""; }} />
                     </label>
                   </div>
                   <div className="flex gap-2 mt-3">

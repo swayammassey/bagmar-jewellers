@@ -1,0 +1,30 @@
+{
+  "summary": "Frontend-only retest of the CATEGORY image change flow on the preview build (https://precious-lookbook.preview.emergentagent.com). Logged into /admin/login with admin@bagmarjewellers.com, opened Categories, and verified: (1) EDIT existing category -> upload /tmp/test_jewel.jpg: preview img src changed from 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338' to 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX...' within ~1s (PASS). (2) ADD new category -> name typed, upload -> preview appeared with 'data:image/jpeg;base64,...' (PASS). (3) Re-selecting the SAME file again in both add and edit forms fired again and preview remained a data: URL (PASS, input value reset works). (4) Toast 'Photo ready - remember to press Save' rendered via data-testid=admin-toast within 200ms. (5) Zero console errors/warnings and zero page errors captured across all runs. No save/publish/delete buttons were clicked; both forms were cancelled. Conclusion: NO category-specific bug exists in the current preview build - the user's report is most likely against the older deployed (Vercel) build, or the user expects the grid tile to update before pressing Save.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Admin > Categories form", "issues": ["After picking a new tile photo, only a small 56x56 thumbnail with 'Tile photo attached' updates; the large category tile in the grid below still shows the OLD image until Save is pressed. This is very likely why the owner reports 'nothing is happening / tile photo remains the same'. Recommend showing the pending image directly on the edited category's grid tile (or a clear 'Unsaved new photo' badge + larger preview).", "The 'Photo ready - remember to press Save' toast auto-dismisses in 2.6s at the bottom-centre of a long scrolled page; easy to miss. Consider a persistent inline hint next to the Save button while an unsaved image is pending."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "No functional fix required for category image attach/preview - it works in the preview build.",
+    "UX: reflect the pending (unsaved) tile image on the category grid tile and/or enlarge the in-form preview so the change is obvious.",
+    "Ask the owner to hard-verify on the preview/latest deployed build; the reported failure could not be reproduced on the current build. If they are on the old Vercel deployment, redeploy."
+  ],
+  "critical_code_review_comments": [
+    "AdminDashboard.jsx is 611 lines and handles auth, rates, hero, categories, catalogue, image compression and toasts - split into smaller section components/hooks for maintainability.",
+    "compressToDataUrl loops toDataURL until <300KB; for a large catalogue this still risks approaching Firestore's 1MB doc limit when multiple product images are stored - consider a hard cap/validation message per image.",
+    "uploadFile swallows errors with bare `catch {}`; log the underlying error to console to make future user-reported upload failures diagnosable."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend only)", "frontend": "100% (4/4 category image scenarios passed)"},
+  "seed_data_creation": "None. No writes performed - both category forms were cancelled (typed name TEST_QA_Cat was never saved).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "admin@bagmarjewellers.com / Bagmar@1987 (live Firebase auth)",
+  "context_for_next_testing_agent": "Category edit + add image attach/preview verified working on preview build (data: URL preview, re-select same file works, no console errors). Never click category-save-btn / hero-save-btn / rates-save-btn / editor-save-btn / any delete or seed button - this app is wired to the owner's LIVE Firestore. Toast element is data-testid='admin-toast' and disappears after 2.6s, so poll it within ~2s of an action.",
+  "rca_of_the_issue": "Reported symptom 'category tile photo does not change' could not be reproduced. Root cause of the user's perception is most likely that the newly selected image is only reflected as a 56px in-form thumbnail while the large category tile in the grid keeps the old image until Save is pressed (state is local to catForm), or the user is testing the previously deployed build rather than the current code."
+}
