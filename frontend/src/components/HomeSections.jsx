@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { BadgeCheck, Gem, Landmark, Star, ArrowRight, Play, MapPin, Phone, Clock, MessageCircle } from "lucide-react";
+import { BadgeCheck, Gem, Landmark, Star, ArrowRight, MapPin, Phone, Clock, MessageCircle, Instagram } from "lucide-react";
 import { Reveal, LineDraw } from "../components/Reveal";
 import { ProductCard } from "../components/ProductCard";
 import { useCatalogue } from "../context/CatalogueContext";
 
 export const GoldMarquee = ({ items }) => {
-  const words = items || ["Bagmar Jewellers", "BIS Hallmarked", "Est. 1987", "Bolarum · Secunderabad", "Handcrafted Heirlooms"];
+  const words = items || ["Bagmar Jewellers", "BIS Hallmarked", "Est. 1897", "Bolarum · Hyderabad", "Handcrafted Heirlooms"];
   const Row = () => (
     <div className="flex shrink-0 items-center">
       {words.map((w, i) => (
@@ -46,25 +46,36 @@ const SectionHead = ({ numeral, kicker, title, italic }) => (
   </Reveal>
 );
 
-const TILE_SPANS = [
-  "col-span-2 h-[250px] md:col-span-7 md:h-[560px]",
-  "col-span-2 h-[250px] md:col-span-5 md:h-[560px]",
-  "h-[200px] md:col-span-4 md:h-[440px]",
-  "h-[200px] md:col-span-4 md:h-[440px]",
-  "h-[200px] md:col-span-4 md:h-[440px]",
-  "h-[200px] md:col-span-12 md:h-[400px]",
-  "col-span-2 h-[250px] md:col-span-7 md:h-[440px]",
-];
+const COL = { 4: "md:col-span-4", 5: "md:col-span-5", 6: "md:col-span-6", 7: "md:col-span-7", 12: "md:col-span-12" };
+// Builds an abstract, gap-free layout: every row sums to the 12-col grid regardless of category count.
+const buildTiles = (n) => {
+  const cycle = [2, 3];
+  const out = [];
+  let i = 0, r = 0;
+  while (i < n) {
+    let size = cycle[r % cycle.length];
+    const remaining = n - i;
+    if (remaining < size) size = remaining;
+    let cols, h, mob;
+    if (size === 1) { cols = [12]; h = "md:h-[380px]"; mob = "col-span-2 h-[230px]"; }
+    else if (size === 2) { cols = r % 2 === 0 ? [7, 5] : [5, 7]; h = "md:h-[520px]"; mob = "col-span-1 h-[230px]"; }
+    else { cols = [4, 4, 4]; h = "md:h-[420px]"; mob = "col-span-2 h-[210px]"; }
+    cols.forEach((c) => out.push(`${mob} ${COL[c]} ${h}`));
+    i += size; r++;
+  }
+  return out;
+};
 
 export const CategoriesGrid = () => {
   const { categories } = useCatalogue();
+  const tiles = buildTiles(categories.length);
   return (
   <section data-testid="categories-section" className="py-24 md:py-36">
     <div className="max-w-7xl mx-auto px-5 md:px-12">
       <SectionHead numeral="I" kicker="Shop by Category" title="Find your" italic="piece" />
       <div className="grid grid-cols-2 md:grid-cols-12 gap-3 md:gap-5">
         {categories.map((c, i) => (
-          <Reveal key={c.slug} delay={i * 0.07} className={TILE_SPANS[i % TILE_SPANS.length]}>
+          <Reveal key={c.slug} delay={i * 0.07} className={tiles[i]}>
             <Link
               to={`/collections/${c.slug}`}
               data-testid={`category-tile-${c.slug}`}
@@ -80,7 +91,7 @@ export const CategoriesGrid = () => {
               <div className="absolute inset-2.5 md:inset-4 border border-white/30 pointer-events-none transition-colors duration-700 group-hover:border-gold-light/60" />
               <div className="absolute inset-x-0 bottom-0 p-4 md:p-8">
                 <span className="block h-px w-8 md:w-10 bg-gold-light mb-2.5 md:mb-4 transition-all duration-700 group-hover:w-16 md:group-hover:w-24" />
-                <h3 className="font-marcellus text-white text-sm sm:text-base md:text-2xl tracking-[0.15em] uppercase">{c.name}</h3>
+                <h3 className="font-marcellus text-white text-base sm:text-lg md:text-2xl tracking-[0.06em]">{c.name}</h3>
                 <p className="font-jost text-white/85 text-[8px] md:text-[10px] tracking-[0.25em] md:tracking-[0.3em] uppercase mt-1.5 md:mt-2">{c.line}</p>
               </div>
             </Link>
@@ -117,8 +128,8 @@ export const FeaturedStrip = () => {
 
 const TRUST = [
   { icon: BadgeCheck, title: "BIS Hallmarked", sub: "100% certified gold" },
-  { icon: Gem, title: "Certified Diamonds", sub: "IGI graded stones" },
-  { icon: Landmark, title: "Est. 1987", sub: "Three generations of craft" },
+  { icon: Gem, title: "Certified Diamonds", sub: "Gemological Institute of America (GIA) & International Gemological Institute (IGI) certified" },
+  { icon: Landmark, title: "Est. 1897", sub: "Five generations of craft" },
   { icon: Star, title: "4.2 Rated", sub: "Google reviews, Bolarum" },
 ];
 
@@ -141,7 +152,7 @@ export const TrustBar = () => (
 const CHAPTERS = [
   ["01", "Provenance", "Every piece is traced to its karigar and its hallmark batch."],
   ["02", "Craftsmanship", "Hand-finished in our Bolarum atelier — never mass-cast."],
-  ["03", "Trust", "Three generations of Secunderabad families buy their gold here."],
+  ["03", "Trust", "Five generations of Hyderabad families buy their gold here."],
 ];
 
 export const Heritage = () => {
@@ -156,7 +167,7 @@ export const Heritage = () => {
             <div className="relative border border-gold/20 overflow-hidden">
               <img src={storeImage} alt="Bagmar Jewellers store" loading="lazy" className="w-full aspect-[4/5] object-cover" />
               <div className="absolute bottom-5 left-5 bg-wine text-white px-6 py-4">
-                <span className="font-marcellus text-2xl block tracking-widest">1987</span>
+                <span className="font-marcellus text-2xl block tracking-widest">1897</span>
                 <span className="font-jost text-[9px] tracking-[0.35em] uppercase">The Beginning</span>
               </div>
             </div>
@@ -166,13 +177,13 @@ export const Heritage = () => {
           <Reveal delay={0.15}>
             <div className="bg-ivory border border-gold/30 p-8 md:p-12 shadow-[0_30px_70px_-20px_rgba(197,160,89,0.25)]">
               <p className="font-jost text-ink/75 leading-loose text-sm md:text-base">
-                For nearly four decades, Bagmar Jewellers has stood in Sadar Bazar, Bolarum — opposite St. Ann's Boys School — crafting hallmarked gold for the families of Secunderabad. What began as a single counter is today a three-generation house of karigars, gemmologists and storytellers in metal.
+                For over a century, Bagmar Jewellers has stood in Sadar Bazar, Bolarum — opposite St. Ann's Boys School — crafting hallmarked gold for the families of Hyderabad. What began as a single counter is today a five-generation house of karigars, gemmologists and storytellers in metal.
               </p>
               <p className="font-cormorant text-xl md:text-2xl text-wine leading-relaxed mt-6">
                 "We don't sell online. We invite you in — to hold the piece, feel its weight, and let it choose you."
               </p>
               <div className="mt-9 flex items-center gap-6 border-t border-gold/25 pt-8">
-                <span className="font-marcellus text-5xl gold-foil-text">38+</span>
+                <span className="font-marcellus text-5xl gold-foil-text">125+</span>
                 <span className="font-jost text-[10px] tracking-[0.3em] uppercase text-ink/60">Years of<br />hallmarked craft</span>
               </div>
             </div>
@@ -197,32 +208,39 @@ export const Heritage = () => {
 };
 
 export const InstagramSection = () => {
-  const { instagramPosts } = useCatalogue();
+  const { instagram } = useCatalogue();
+  const brands = [
+    { ...instagram.gold, accent: "text-gold-dark", note: "Gold · Diamond · Bridal" },
+    { ...instagram.silver, accent: "text-ink", note: "Fine Silver · Anklets · Gifting" },
+  ];
   return (
   <section data-testid="instagram-section" className="py-24 md:py-32 bg-cream/60 border-y border-gold/25">
     <div className="max-w-7xl mx-auto px-5 md:px-12">
-      <div className="flex items-end justify-between gap-6">
-        <SectionHead numeral="IV" kicker="@bagmarjewellers" title="On the" italic="gram" />
-        <a
-          href="#"
-          data-testid="instagram-visit-btn"
-          className="btn-lux group shrink-0 hidden sm:inline-block border border-wine text-wine px-7 py-3 font-marcellus text-[10px] tracking-[0.3em] uppercase mb-4"
-        >
-          <span className="btn-fill bg-wine" />
-          <span className="relative z-10 transition-colors duration-500 group-hover:text-white">Visit Now</span>
-        </a>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {instagramPosts.map((post, i) => (
-          <Reveal key={i} delay={i * 0.06}>
-            <a href="#" data-testid={`insta-tile-${i}`} className="group block bg-white border border-gold/25 p-1.5">
-              <span className="relative block aspect-[3/4] overflow-hidden">
-                <img src={post.image} alt={post.label} loading="lazy" className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110" />
-                <span className="absolute inset-0 bg-ink/0 group-hover:bg-ink/45 transition-colors duration-500 flex items-center justify-center">
-                  <Play size={24} strokeWidth={1} className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <SectionHead numeral="IV" kicker="Follow Our Ateliers" title="On" italic="Instagram" />
+      <p className="font-jost text-sm text-ink/60 max-w-xl -mt-8 mb-12 leading-relaxed">
+        Two houses, one legacy — follow along for new arrivals, bridal edits and behind-the-scenes from our karigars.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {brands.map((b, i) => (
+          <Reveal key={b.handle} delay={i * 0.12}>
+            <a
+              href={b.url}
+              target="_blank"
+              rel="noreferrer"
+              data-testid={`insta-brand-${i}`}
+              className="group block bg-white border border-gold/30 p-2 h-full transition-[transform,box-shadow] duration-500 hover:-translate-y-1.5 hover:shadow-[0_28px_50px_-18px_rgba(197,160,89,0.4)]"
+            >
+              <div className="border border-gold/20 p-8 md:p-11 h-full flex flex-col items-start">
+                <span className="w-14 h-14 rounded-full border border-gold/40 flex items-center justify-center text-gold-dark transition-colors duration-500 group-hover:bg-wine group-hover:text-white group-hover:border-wine">
+                  <Instagram size={24} strokeWidth={1.3} />
                 </span>
-              </span>
-              <span className="block font-jost text-[9px] tracking-[0.25em] uppercase text-ink/60 px-1 py-2.5">{post.label}</span>
+                <h3 className="font-cinzel text-xl md:text-2xl tracking-[0.12em] uppercase mt-7 text-ink">{b.label}</h3>
+                <span className={`font-cormorant text-2xl md:text-3xl mt-1 ${b.accent}`}>@{b.handle}</span>
+                <span className="font-jost text-[10px] tracking-[0.3em] uppercase text-ink/50 mt-4">{b.note}</span>
+                <span className="mt-8 inline-flex items-center gap-2 font-marcellus text-[11px] tracking-[0.3em] uppercase text-wine group-hover:gap-3.5 transition-all duration-300">
+                  Follow on Instagram <ArrowRight size={15} strokeWidth={1.5} />
+                </span>
+              </div>
             </a>
           </Reveal>
         ))}
@@ -275,13 +293,13 @@ export const VisitUs = () => {
   return (
   <section id="visit" data-testid="visit-section" className="py-24 md:py-36">
     <div className="max-w-7xl mx-auto px-5 md:px-12">
-      <SectionHead numeral="V" kicker="Visit Us" title="The store on" italic="Sadar Bazar" />
+      <SectionHead numeral="V" kicker="Visit Us" title="The store on" italic="Sadar Bazar, Bolarum, Hyderabad" />
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <Reveal className="lg:col-span-7">
           <div className="border border-gold/30 p-2 bg-white">
-            <MapFrame mapsQuery="https://www.google.com/maps?q=Bagmar%20Jewellers%2C%20Sadar%20Bazar%2C%20Bolarum%2C%20Secunderabad%2C%20Telangana%20500010&output=embed" />
+            <MapFrame mapsQuery="https://www.google.com/maps?q=Bagmar%20Jewellers%2C%20Sadar%20Bazar%2C%20Bolarum%2C%20Hyderabad%2C%20Telangana%20500010&output=embed" />
             <div className="flex items-center justify-between px-2 pt-3 pb-1">
-              <span className="font-marcellus text-[10px] tracking-[0.35em] uppercase text-ink/60">Bolarum, Secunderabad</span>
+              <span className="font-marcellus text-[10px] tracking-[0.35em] uppercase text-ink/60">Bolarum, Hyderabad</span>
               <a href={store.mapsUrl} target="_blank" rel="noreferrer" data-testid="maps-directions-link" className="lux-link font-marcellus text-[10px] tracking-[0.35em] uppercase text-gold-dark">
                 Get Directions
               </a>

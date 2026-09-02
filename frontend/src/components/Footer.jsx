@@ -17,7 +17,7 @@ export const Footer = () => {
           <Logo compact white />
         </span>
         <p className="font-jost text-sm leading-loose mt-7 max-w-xs">
-          BIS hallmarked gold and certified diamonds, handcrafted in Secunderabad since 1987. A catalogue house — visit us, or enquire on WhatsApp.
+          BIS hallmarked gold and certified diamonds, handcrafted in Hyderabad since 1897. A catalogue house — visit us, or enquire on WhatsApp.
         </p>
         <div className="flex gap-5 mt-7">
           <a href="#" data-testid="social-instagram" aria-label="Instagram" className="text-gold hover:text-gold-light transition-colors duration-300"><Instagram size={17} strokeWidth={1.2} /></a>
@@ -45,7 +45,7 @@ export const Footer = () => {
       </div>
     </div>
     <div className="relative border-t border-white/10 py-7 text-center font-marcellus text-[9px] tracking-[0.35em] uppercase text-white/40">
-      © {new Date().getFullYear()} Bagmar Jewellers · Bolarum, Secunderabad
+      © {new Date().getFullYear()} Bagmar Jewellers · Bolarum, Hyderabad
     </div>
   </footer>
   );

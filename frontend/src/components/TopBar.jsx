@@ -8,7 +8,7 @@ export const TopBar = () => {
     { text: `24KT ${store.goldRates.kt24} / g`, strong: true },
     { text: "Indicative · Updated Daily" },
     { text: `BIS Hallmarked · ${store.est}` },
-    { text: "Bolarum · Secunderabad" },
+    { text: "Bolarum · Hyderabad" },
     { text: store.phone },
     { text: store.hours },
   ];
@@ -16,12 +16,8 @@ export const TopBar = () => {
     <div className="flex shrink-0 items-center">
       {TICKER.map((t, i) => (
         <span key={i} className="flex items-center whitespace-nowrap">
-          {t.chip ? (
-            <span className="ml-7 bg-gold text-ink px-3.5 py-1 tracking-[0.25em] font-semibold">{t.text}</span>
-          ) : (
-            <span className={`px-7 ${t.strong ? "font-semibold text-gold-light" : "text-white/75"}`}>{t.text}</span>
-          )}
-          <span className="text-gold-light/40">✦</span>
+          <span className={`px-8 ${t.chip ? "text-gold-light font-semibold" : t.strong ? "font-semibold text-gold-light" : "text-white/70"}`}>{t.text}</span>
+          <span className="h-3 w-px bg-gold-light/25" />
         </span>
       ))}
     </div>

@@ -10,11 +10,25 @@ export const resolveImg = (u) => (u && u.startsWith("/api/") ? `${API}${u}` : u)
 
 export const inr = mock.inr;
 
+// Cache the last real Firestore data so the first paint shows the CURRENT
+// catalogue (not old mock images) — eliminates the brief image swap on load.
+const CACHE_KEY = "bagmar_catalogue_v1";
+const readCache = () => {
+  try { return JSON.parse(localStorage.getItem(CACHE_KEY)) || {}; } catch { return {}; }
+};
+const writeCache = (patch) => {
+  try {
+    const prev = readCache();
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ...prev, ...patch }));
+  } catch { /* storage full / unavailable — ignore */ }
+};
+
 export const CatalogueProvider = ({ children }) => {
-  const [products, setProducts] = useState(mock.PRODUCTS);
-  const [settings, setSettings] = useState(mock.STORE.goldRates);
-  const [heroSlides, setHeroSlides] = useState(mock.HERO_SLIDES);
-  const [categories, setCategories] = useState(mock.CATEGORIES);
+  const cache = readCache();
+  const [products, setProducts] = useState(cache.products?.length ? cache.products : mock.PRODUCTS);
+  const [settings, setSettings] = useState(cache.settings || mock.STORE.goldRates);
+  const [heroSlides, setHeroSlides] = useState(cache.heroSlides?.length ? cache.heroSlides : mock.HERO_SLIDES);
+  const [categories, setCategories] = useState(cache.categories?.length ? cache.categories : mock.CATEGORIES);
 
   useEffect(() => {
     if (!firebaseReady) return;
@@ -23,22 +37,22 @@ export const CatalogueProvider = ({ children }) => {
       unsubs.push(
         onSnapshot(query(collection(db, "products"), orderBy("id")), (snap) => {
           const docs = snap.docs.map((d) => d.data());
-          if (docs.length) setProducts(docs);
+          if (docs.length) { setProducts(docs); writeCache({ products: docs }); }
         }, () => {})
       );
       unsubs.push(
         onSnapshot(collection(db, "categories"), (snap) => {
           const docs = snap.docs.map((d) => d.data());
-          if (docs.length) setCategories(docs);
+          if (docs.length) { setCategories(docs); writeCache({ categories: docs }); }
         }, () => {})
       );
       getDoc(doc(db, "settings", "gold_rates"))
-        .then((s) => { if (s.exists()) setSettings({ kt22: s.data().kt22, kt24: s.data().kt24 }); })
+        .then((s) => { if (s.exists()) { const r = { kt22: s.data().kt22, kt24: s.data().kt24 }; setSettings(r); writeCache({ settings: r }); } })
         .catch(() => {});
       getDoc(doc(db, "settings", "hero_slides"))
-        .then((s) => { if (s.exists() && s.data().slides?.length) setHeroSlides(s.data().slides); })
+        .then((s) => { if (s.exists() && s.data().slides?.length) { setHeroSlides(s.data().slides); writeCache({ heroSlides: s.data().slides }); } })
         .catch(() => {});
-    } catch { /* Firebase unreachable — mock fallback stays */ }
+    } catch { /* Firebase unreachable — cached/mock fallback stays */ }
     return () => unsubs.forEach((u) => u());
   }, []);
 
@@ -51,6 +65,7 @@ export const CatalogueProvider = ({ children }) => {
     store: { ...mock.STORE, goldRates: settings },
     heroSlides,
     instagramPosts: mock.INSTAGRAM_POSTS,
+    instagram: mock.INSTAGRAM,
     storeImage: mock.STORE_IMAGE,
     featured: products.filter((p) => p.featured),
     getProduct: (id) => products.find((p) => p.id === Number(id)),

@@ -5,12 +5,12 @@ const us = (path, w = 900) => `https://images.unsplash.com/${path}?q=80&w=${w}&a
 export const STORE = {
   name: "Bagmar Jewellers",
   tagline: "Heirlooms handcrafted in gold",
-  phone: "+91 90301 28008",
-  phoneHref: "tel:+919030128008",
-  whatsapp: "https://wa.me/919030128008",
-  est: "Est. 1987",
-  hours: "Open Daily · 10 AM – 9 PM",
-  address: "Sadar Bazar, Opp. St. Ann's Boys School, Aditya Bank Colony, Bolarum, Secunderabad, Telangana 500010",
+  phone: "+91 93919 00939",
+  phoneHref: "tel:+919391900939",
+  whatsapp: "https://wa.me/919391900939",
+  est: "Est. 1897",
+  hours: "Open Daily · 10:30 AM – 9 PM",
+  address: "Sadar Bazar, Opp. St. Ann's Boys School, Aditya Bank Colony, Bolarum, Hyderabad, Telangana 500010",
   rating: "4.2",
   goldRates: { kt22: "₹7,245", kt24: "₹7,904" },
   mapsUrl:
@@ -219,5 +219,39 @@ export const INSTAGRAM_POSTS = [
   { image: px(37601639, 800), label: "For Her" },
   { image: px(27024458, 800), label: "Detail Study" },
 ];
+
+// Two brand handles — Bagmar (gold) and Prathik (silver).
+// NOTE: tiles link to the live profiles. True auto-sync of the latest posts
+// requires the Instagram Graph API (a business account + long-lived token).
+export const INSTAGRAM = {
+  gold: {
+    label: "Bagmar Jewels",
+    handle: "bagmar_jewels",
+    url: "https://www.instagram.com/bagmar_jewels",
+    tagline: "Gold · Diamond · Bridal",
+    posts: [
+      us("photo-1601121141461-920cb1993441", 800),
+      px(17238390, 800),
+      us("photo-1721103418312-b0057a8c31c2", 800),
+      us("photo-1611085583191-a3b181a88401", 800),
+      px(37601639, 800),
+      us("photo-1589674781759-c21c37956a44", 800),
+    ],
+  },
+  silver: {
+    label: "Prathik Jewellers",
+    handle: "prathikjewellers",
+    url: "https://www.instagram.com/prathikjewellers",
+    tagline: "Fine Silver · Anklets · Gifting",
+    posts: [
+      us("photo-1635770607507-beb7d7972491", 800),
+      us("photo-1744722093742-aad22c7fa68b", 800),
+      us("photo-1623238197787-07239a76156f", 800),
+      us("photo-1651395835317-d2868e8ebcac", 800),
+      us("photo-1601121141499-17ae80afc03a", 800),
+      us("photo-1721807551235-4072be6913c0", 800),
+    ],
+  },
+};
 
 export const STORE_IMAGE = px(33257668, 1200);

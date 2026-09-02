@@ -222,7 +222,7 @@ export default function ProductPage() {
                   </Link>
                 </div>
                 <p className="font-jost text-ink/60 text-[13px] mt-6 leading-relaxed">
-                  This piece is on display at our Sadar Bazar store — open daily, 10 AM to 9 PM.
+                  This piece is on display at our Sadar Bazar store — open daily, 10:30 AM to 9 PM.
                 </p>
               </Reveal>
             </div>

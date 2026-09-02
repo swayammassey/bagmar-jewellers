@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { MessageCircle, MapPin, BadgeCheck, Star } from "lucide-react";
 
 const MaskedLine = ({ children, delay = 0, className = "" }) => (
-  <span className={`block overflow-hidden ${className}`}>
+  <span className={`block overflow-hidden pb-[0.5em] ${className}`}>
     <motion.span
       className="block"
       initial={{ y: "110%" }}
@@ -50,18 +50,18 @@ export const HeroCarousel = () => {
         style={{ y: watermarkY, opacity: watermarkOpacity }}
         className="font-marcellus absolute -bottom-8 -right-4 text-[24vw] leading-none text-gold select-none pointer-events-none"
       >
-        1987
+        1897
       </motion.span>
 
-      <div className="max-w-7xl mx-auto px-5 md:px-12 pt-8 pb-14 md:pt-14 md:pb-20 grid lg:grid-cols-12 gap-8 lg:gap-0 items-center">
-        <div className="lg:col-span-6 relative z-10 order-2 lg:order-1 lg:-mr-24">
+      <div className="max-w-7xl mx-auto px-5 md:px-12 pt-8 pb-12 lg:py-6 grid lg:grid-cols-2 gap-8 lg:gap-12 items-center lg:min-h-[calc(100vh-8.5rem)]">
+        <div className="relative z-10 order-2 lg:order-1">
           <motion.div
             initial={{ opacity: 0, y: 32 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
             className="lg:bg-ivory lg:border lg:border-gold/35 lg:p-2 lg:shadow-[0_40px_90px_-30px_rgba(197,160,89,0.35)]"
           >
-            <div className="lg:border lg:border-gold/25 p-1 md:p-11">
+            <div className="lg:border lg:border-gold/25 p-1 md:p-8 lg:p-7">
               <div className="flex items-center gap-4">
                 <motion.span
                   className="h-px bg-gold origin-left"
@@ -71,26 +71,24 @@ export const HeroCarousel = () => {
                   style={{ width: "3rem" }}
                 />
                 <span data-testid="hero-kicker" className="font-jost text-[10px] md:text-[11px] tracking-[0.45em] uppercase text-gold-dark">
-                  {store.est} · Bolarum, Secunderabad
+                  {store.est} · Bolarum, Hyderabad
                 </span>
               </div>
 
               <h1
                 data-testid="hero-title"
-                className="font-marcellus text-ink text-4xl sm:text-5xl lg:text-6xl leading-[1.12] mt-6"
+                className="font-marcellus text-ink text-4xl sm:text-5xl lg:text-5xl xl:text-6xl leading-[1.15] mt-5 lg:mt-4"
               >
                 <MaskedLine delay={0.35}>Heirlooms in gold,</MaskedLine>
-                <MaskedLine delay={0.5}>
-                  <span>crafted for </span>
-                  <span className="font-cormorant gold-foil-text">generations</span>
-                </MaskedLine>
+                <MaskedLine delay={0.48}>crafted for</MaskedLine>
+                <MaskedLine delay={0.6}><span className="font-cormorant gold-foil-text">generations</span></MaskedLine>
               </h1>
 
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.9, duration: 0.8 }}
-                className="font-jost text-ink/65 text-sm md:text-base leading-loose mt-6 max-w-md"
+                className="font-jost text-ink/65 text-sm md:text-base leading-loose mt-6 lg:mt-4 max-w-md"
               >
                 BIS hallmarked gold and certified diamonds from Bolarum's trusted house of jewellery. Browse the catalogue — enquire when a piece speaks to you.
               </motion.p>
@@ -99,7 +97,7 @@ export const HeroCarousel = () => {
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.05, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                className="flex flex-wrap gap-4 mt-9"
+                className="flex flex-wrap gap-4 mt-9 lg:mt-6"
               >
                 <a
                   href={store.whatsapp}
@@ -129,7 +127,7 @@ export const HeroCarousel = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.2, duration: 0.8 }}
-                className="flex flex-wrap items-center gap-x-8 gap-y-3 mt-10 pt-7 border-t border-gold/25"
+                className="flex flex-wrap items-center gap-x-8 gap-y-3 mt-10 lg:mt-6 pt-7 lg:pt-5 border-t border-gold/25"
               >
                 <span className="flex items-center gap-2 font-jost text-[10px] tracking-[0.25em] uppercase text-ink/70">
                   <BadgeCheck size={14} strokeWidth={1.4} className="text-gold-dark" /> BIS Hallmarked
@@ -145,7 +143,7 @@ export const HeroCarousel = () => {
           </motion.div>
         </div>
 
-        <div className="lg:col-span-6 order-1 lg:order-2 relative" style={{ perspective: "1200px" }}>
+        <div className="order-1 lg:order-2 relative" style={{ perspective: "1200px" }}>
           <motion.div
             initial={{ clipPath: "inset(0 0 100% 0)" }}
             animate={{ clipPath: "inset(0 0 0% 0)" }}
@@ -155,7 +153,7 @@ export const HeroCarousel = () => {
             onMouseLeave={() => { mx.set(0); my.set(0); }}
             className="border border-gold/30 p-2 bg-white"
           >
-            <div className="relative h-[48vh] md:h-[68vh] border border-gold/20 overflow-hidden">
+            <div className="relative h-[46vh] md:h-[60vh] lg:h-[calc(100vh-15rem)] lg:max-h-[600px] lg:min-h-[420px] border border-gold/20 overflow-hidden">
               {heroSlides.map((s, i) => (
                 <motion.div
                   key={i}
