@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { collection, doc, getDoc, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db, firebaseReady } from "../lib/firebase";
 import * as mock from "../data/catalogue";
+import { calculateProductPricing } from "../lib/pricing";
+import { getCategoryDescendantSlugs } from "../lib/categoryTree";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 const Ctx = createContext(null);
@@ -29,6 +31,10 @@ export const CatalogueProvider = ({ children }) => {
   const [settings, setSettings] = useState(cache.settings || mock.STORE.goldRates);
   const [heroSlides, setHeroSlides] = useState(cache.heroSlides?.length ? cache.heroSlides : mock.HERO_SLIDES);
   const [categories, setCategories] = useState(cache.categories?.length ? cache.categories : mock.CATEGORIES);
+  const displayedProducts = products.map((product) => {
+    const pricing = calculateProductPricing(product, settings);
+    return pricing ? { ...product, price: pricing.total, pricing } : product;
+  });
 
   useEffect(() => {
     if (!firebaseReady) return;
@@ -46,9 +52,15 @@ export const CatalogueProvider = ({ children }) => {
           if (docs.length) { setCategories(docs); writeCache({ categories: docs }); }
         }, () => {})
       );
-      getDoc(doc(db, "settings", "gold_rates"))
-        .then((s) => { if (s.exists()) { const r = { kt22: s.data().kt22, kt24: s.data().kt24 }; setSettings(r); writeCache({ settings: r }); } })
-        .catch(() => {});
+      unsubs.push(
+        onSnapshot(doc(db, "settings", "gold_rates"), (s) => {
+          if (s.exists()) {
+            const rates = { ...mock.STORE.goldRates, ...s.data() };
+            setSettings(rates);
+            writeCache({ settings: rates });
+          }
+        }, () => {})
+      );
       getDoc(doc(db, "settings", "hero_slides"))
         .then((s) => { if (s.exists() && s.data().slides?.length) { setHeroSlides(s.data().slides); writeCache({ heroSlides: s.data().slides }); } })
         .catch(() => {});
@@ -57,9 +69,13 @@ export const CatalogueProvider = ({ children }) => {
   }, []);
 
   const categoryName = (slug) => categories.find((c) => c.slug === slug)?.name || slug;
+  const productsByCategory = (slug) => {
+    const descendantSlugs = getCategoryDescendantSlugs(categories, slug);
+    return displayedProducts.filter((product) => product.category === slug || descendantSlugs.has(product.category));
+  };
 
   const value = {
-    products,
+    products: displayedProducts,
     settings,
     categories,
     store: { ...mock.STORE, goldRates: settings },
@@ -67,9 +83,9 @@ export const CatalogueProvider = ({ children }) => {
     instagramPosts: mock.INSTAGRAM_POSTS,
     instagram: mock.INSTAGRAM,
     storeImage: mock.STORE_IMAGE,
-    featured: products.filter((p) => p.featured),
-    getProduct: (id) => products.find((p) => p.id === Number(id)),
-    productsByCategory: (slug) => products.filter((p) => p.category === slug),
+    featured: displayedProducts.filter((p) => p.featured),
+    getProduct: (id) => displayedProducts.find((p) => p.id === Number(id)),
+    productsByCategory,
     categoryName,
     inr: mock.inr,
     waLink: mock.waLink,

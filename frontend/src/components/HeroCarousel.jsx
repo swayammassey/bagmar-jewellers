@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform, useScroll } from "framer-motion";
 import { useCatalogue } from "../context/CatalogueContext";
+import { formatGoldRate } from "../lib/pricing";
 import { Link } from "react-router-dom";
 import { MessageCircle, MapPin, BadgeCheck, Star } from "lucide-react";
 
@@ -136,7 +137,7 @@ export const HeroCarousel = () => {
                   <Star size={14} strokeWidth={1.4} className="text-gold-dark" /> 4.2 Google Rated
                 </span>
                 <span data-testid="hero-gold-rate" className="font-jost text-[10px] tracking-[0.25em] uppercase text-wine">
-                  Today · 22KT {store.goldRates.kt22}/g · 24KT {store.goldRates.kt24}/g
+                  Today · {store.goldRates.kt18 ? `18KT ${formatGoldRate(store.goldRates.kt18)}/g · ` : ""}22KT {formatGoldRate(store.goldRates.kt22)}/g · 24KT {formatGoldRate(store.goldRates.kt24)}/g
                 </span>
               </motion.div>
             </div>

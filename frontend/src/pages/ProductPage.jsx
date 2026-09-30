@@ -25,11 +25,14 @@ export default function ProductPage() {
 
   const images = product.images.map(resolveImg);
   const related = productsByCategory(product.category).filter((prod) => prod.id !== product.id).slice(0, 4);
-  const discount = product.mrp && product.mrp > product.price ? Math.round(((product.mrp - product.price) / product.mrp) * 100) : 0;
-
   const specs = [
     { icon: Gem, label: "Material", value: product.material, testid: "product-material" },
-    { icon: Scale, label: "Net Weight", value: product.weight, testid: "product-weight" },
+    ...(product.grossWeight && product.netWeight
+      ? [
+          { icon: Scale, label: "Gross Weight", value: `${product.grossWeight} g`, testid: "product-gross-weight" },
+          { icon: Scale, label: "Net Gold Weight", value: `${product.netWeight} g`, testid: "product-weight" },
+        ]
+      : [{ icon: Scale, label: "Weight", value: product.weight, testid: "product-weight" }]),
     { icon: BadgeCheck, label: "Certification", value: "BIS Hallmarked", testid: "product-certification" },
     { icon: Store, label: "Availability", value: "In-store · Bolarum", testid: "product-availability" },
   ];
@@ -105,10 +108,6 @@ export default function ProductPage() {
                         <ZoomIn size={15} strokeWidth={1.5} />
                       </button>
 
-                      {discount > 0 && (
-                        <span data-testid="product-discount-badge" className="absolute top-4 left-4 bg-wine text-white font-marcellus text-[9px] tracking-[0.25em] uppercase px-3 py-1.5">Save {discount}%</span>
-                      )}
-
                       <span className="absolute top-4 right-4 bg-ink/55 text-white/90 font-jost text-[10px] tracking-[0.2em] px-2.5 py-1">
                         {imgIndex + 1} / {images.length}
                       </span>
@@ -159,18 +158,17 @@ export default function ProductPage() {
 
                 <div className="mt-7 bg-cream/70 border border-gold/30 p-5 md:p-6 flex items-center justify-between gap-4">
                   <div>
-                    <span className="font-jost text-[9px] tracking-[0.3em] uppercase text-ink/55 block mb-1.5">Indicative Price</span>
-                    <div className="flex items-baseline gap-3 flex-wrap">
-                      <span data-testid="product-price" className="font-marcellus text-3xl text-ink tracking-wide">{inr(product.price)}</span>
-                      {product.mrp && product.mrp > product.price && (
-                        <span data-testid="product-mrp" className="font-jost text-wine/70 line-through text-sm">{inr(product.mrp)}</span>
-                      )}
-                    </div>
+                    <span className="font-jost text-[9px] tracking-[0.3em] uppercase text-ink/55 block mb-1.5">{product.pricing ? "Total Price · 3% GST Included" : "Current Price"}</span>
+                    <span data-testid="product-price" className="font-marcellus text-3xl text-ink tracking-wide">{inr(product.price)}</span>
                   </div>
-                  {discount > 0 && (
-                    <span className="bg-wine text-white font-marcellus text-[10px] tracking-[0.2em] uppercase px-3.5 py-2 shrink-0">Save {discount}%</span>
-                  )}
                 </div>
+                {product.pricing && (
+                  <dl data-testid="product-price-breakdown" className="mt-3 space-y-1.5 font-jost text-xs text-ink/70">
+                    <div className="flex justify-between gap-4"><dt>Gold value · {product.pricing.netWeight} g · {product.pricing.karat}KT</dt><dd>{inr(product.pricing.goldValue)}</dd></div>
+                    <div className="flex justify-between gap-4"><dt>Value addition</dt><dd>{inr(product.pricing.vaAmount)}</dd></div>
+                    <div className="flex justify-between gap-4"><dt>GST · 3%</dt><dd>{inr(product.pricing.gstAmount)}</dd></div>
+                  </dl>
+                )}
                 <p className="font-jost text-[10px] tracking-[0.2em] uppercase text-ink/55 mt-3">Confirm today's live rate on WhatsApp</p>
 
                 <p data-testid="product-description" className="font-jost text-ink/80 leading-loose mt-7 text-[15px]">{product.description}</p>

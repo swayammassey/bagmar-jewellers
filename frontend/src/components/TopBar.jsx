@@ -1,11 +1,13 @@
 import { useCatalogue } from "../context/CatalogueContext";
+import { formatGoldRate } from "../lib/pricing";
 
 export const TopBar = () => {
   const { store } = useCatalogue();
   const TICKER = [
     { text: "Today's Gold Rate", chip: true },
-    { text: `22KT ${store.goldRates.kt22} / g`, strong: true },
-    { text: `24KT ${store.goldRates.kt24} / g`, strong: true },
+    ...(store.goldRates.kt18 ? [{ text: `18KT ${formatGoldRate(store.goldRates.kt18)} / g`, strong: true }] : []),
+    { text: `22KT ${formatGoldRate(store.goldRates.kt22)} / g`, strong: true },
+    { text: `24KT ${formatGoldRate(store.goldRates.kt24)} / g`, strong: true },
     { text: "Indicative · Updated Daily" },
     { text: `BIS Hallmarked · ${store.est}` },
     { text: "Bolarum · Hyderabad" },

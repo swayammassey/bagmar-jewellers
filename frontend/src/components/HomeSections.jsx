@@ -4,6 +4,7 @@ import { BadgeCheck, Gem, Landmark, Star, ArrowRight, MapPin, Phone, Clock, Mess
 import { Reveal, LineDraw } from "../components/Reveal";
 import { ProductCard } from "../components/ProductCard";
 import { useCatalogue } from "../context/CatalogueContext";
+import { getPrimaryMainCategories } from "../lib/categoryTree";
 
 export const GoldMarquee = ({ items }) => {
   const words = items || ["Bagmar Jewellers", "BIS Hallmarked", "Est. 1897", "Bolarum · Hyderabad", "Handcrafted Heirlooms"];
@@ -68,13 +69,17 @@ const buildTiles = (n) => {
 
 export const CategoriesGrid = () => {
   const { categories } = useCatalogue();
-  const tiles = buildTiles(categories.length);
+  const mainCategories = getPrimaryMainCategories(categories);
+  const visibleCategories = mainCategories.length
+    ? mainCategories
+    : categories.filter((category) => !category.parentSlug);
+  const tiles = buildTiles(visibleCategories.length);
   return (
   <section data-testid="categories-section" className="py-24 md:py-36">
     <div className="max-w-7xl mx-auto px-5 md:px-12">
       <SectionHead numeral="I" kicker="Shop by Category" title="Find your" italic="piece" />
       <div className="grid grid-cols-2 md:grid-cols-12 gap-3 md:gap-5">
-        {categories.map((c, i) => (
+        {visibleCategories.map((c, i) => (
           <Reveal key={c.slug} delay={i * 0.07} className={tiles[i]}>
             <Link
               to={`/collections/${c.slug}`}
@@ -210,8 +215,8 @@ export const Heritage = () => {
 export const InstagramSection = () => {
   const { instagram } = useCatalogue();
   const brands = [
-    { ...instagram.gold, accent: "text-gold-dark", note: "Gold · Diamond · Bridal" },
-    { ...instagram.silver, accent: "text-ink", note: "Fine Silver · Anklets · Gifting" },
+    { ...instagram.gold, accent: "text-gold-dark", note: instagram.gold.tagline },
+    { ...instagram.silver, accent: "text-ink", note: instagram.silver.tagline },
   ];
   return (
   <section data-testid="instagram-section" className="py-24 md:py-32 bg-cream/60 border-y border-gold/25">
@@ -234,7 +239,10 @@ export const InstagramSection = () => {
                 <span className="w-14 h-14 rounded-full border border-gold/40 flex items-center justify-center text-gold-dark transition-colors duration-500 group-hover:bg-wine group-hover:text-white group-hover:border-wine">
                   <Instagram size={24} strokeWidth={1.3} />
                 </span>
-                <h3 className="font-cinzel text-xl md:text-2xl tracking-[0.12em] uppercase mt-7 text-ink">{b.label}</h3>
+                <div className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <h3 className="font-cinzel text-xl md:text-2xl tracking-[0.12em] uppercase text-ink">{b.label}</h3>
+                  {b.descriptor && <span className="border border-gold/60 bg-gold-light/35 px-2.5 py-1 font-jost text-[9px] font-medium tracking-[0.12em] uppercase text-wine">{b.descriptor}</span>}
+                </div>
                 <span className={`font-cormorant text-2xl md:text-3xl mt-1 ${b.accent}`}>@{b.handle}</span>
                 <span className="font-jost text-[10px] tracking-[0.3em] uppercase text-ink/50 mt-4">{b.note}</span>
                 <span className="mt-8 inline-flex items-center gap-2 font-marcellus text-[11px] tracking-[0.3em] uppercase text-wine group-hover:gap-3.5 transition-all duration-300">

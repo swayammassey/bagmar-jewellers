@@ -1,16 +1,47 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Pencil, Trash2, Plus, X, LogOut, Upload, Star, FolderPlus, Database, LayoutDashboard, Coins, Image as ImageIcon, FolderOpen, Gem, ExternalLink } from "lucide-react";
+import { Pencil, Trash2, Plus, X, LogOut, Upload, Star, FolderPlus, Database, LayoutDashboard, Coins, Image as ImageIcon, FolderOpen, Gem, ExternalLink, Download } from "lucide-react";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { collection, doc, getDocs, setDoc, deleteDoc, writeBatch, query, orderBy } from "firebase/firestore";
 import { auth, db, firebaseReady } from "../../lib/firebase";
 import { Logo } from "../../components/Logo";
 import { resolveImg } from "../../context/CatalogueContext";
 import * as mock from "../../data/catalogue";
+import { calculateProductPricing, deriveGoldRatesFrom24, getProductKarat, parseAmount, parseWeightGrams } from "../../lib/pricing";
+import { getCategoryDescendantSlugs, getPrimaryMainCategories, isMainCategory } from "../../lib/categoryTree";
 
-const EMPTY_FORM = { name: "", category: "necklaces", material: "22KT Gold", weight: "", price: "", mrp: "", description: "", featured: false, images: [] };
-const EMPTY_CAT = { name: "", line: "", image: "" };
+const EMPTY_FORM = { name: "", category: "necklaces", material: "22KT Gold", karat: 22, grossWeight: "", netWeight: "", vaPercent: "", price: 0, description: "", featured: false, images: [] };
+const EMPTY_CAT = { name: "", line: "", image: "", parentSlug: "" };
 const slugify = (s) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+const downloadTextFile = (filename, content, type) => {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
+const csvCell = (value) => {
+  const text = value == null ? "" : typeof value === "object" ? JSON.stringify(value) : String(value);
+  const safeText = /^[=+\-@]/.test(text) ? `'${text}` : text;
+  return `"${safeText.replace(/"/g, '""')}"`;
+};
+const getCategoryGender = (category, categories) => {
+  let root = category;
+  const visited = new Set();
+  while (root?.parentSlug && !visited.has(root.slug)) {
+    visited.add(root.slug);
+    root = categories.find((item) => item.slug === root.parentSlug);
+  }
+  if (!root) return null;
+  const label = `${root.slug} ${root.name}`.toLowerCase();
+  if (/women|ladies|female/.test(label)) return "women";
+  if (/men|gents|male/.test(label)) return "men";
+  if (!root.type && ["necklaces", "jhumkas", "tops", "bracelets", "rings"].includes(root.slug)) return "women";
+  return null;
+};
 
 const NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -54,12 +85,14 @@ export default function AdminDashboard() {
   const [cats, setCats] = useState([]);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
-  const [settings, setSettings] = useState({ kt22: "", kt24: "" });
+  const [settings, setSettings] = useState({ kt18: "", kt22: "", kt24: "" });
   const [slides, setSlides] = useState(null);
   const [form, setForm] = useState(null);
   const [catForm, setCatForm] = useState(null);
+  const [categoryView, setCategoryView] = useState("main");
+  const [categoryParentFilter, setCategoryParentFilter] = useState("all");
   const [filter, setFilter] = useState("all");
-  const [offersOnly, setOffersOnly] = useState(false);
+  const [collectionFilter, setCollectionFilter] = useState("women");
   const [toast, setToast] = useState("");
   const [saving, setSaving] = useState(false);
   const [seeding, setSeeding] = useState(false);
@@ -77,7 +110,10 @@ export default function AdminDashboard() {
       setProducts(p.docs.map((d) => d.data()));
       setCats(c.docs.map((d) => d.data()));
       const rates = s.docs.find((d) => d.id === "gold_rates");
-      if (rates) setSettings({ kt22: rates.data().kt22, kt24: rates.data().kt24 });
+      if (rates) {
+        const data = rates.data();
+        setSettings(deriveGoldRatesFrom24(data.kt24 ? parseAmount(data.kt24) : ""));
+      }
       const hero = s.docs.find((d) => d.id === "hero_slides");
       setSlides(hero && hero.data().slides?.length ? hero.data().slides : mock.HERO_SLIDES);
     } catch (e) {
@@ -178,9 +214,15 @@ export default function AdminDashboard() {
   };
 
   const saveRates = async () => {
+    const rates = deriveGoldRatesFrom24(settings.kt24);
+    if (rates.kt24 <= 0) {
+      notify("Enter a valid 24KT rate");
+      return;
+    }
     setSaving(true);
     try {
-      await setDoc(doc(db, "settings", "gold_rates"), settings);
+      await setDoc(doc(db, "settings", "gold_rates"), rates);
+      setSettings(rates);
       notify("Gold rates updated live on the website");
     } catch {
       notify("Save failed — check your connection and try again");
@@ -210,7 +252,27 @@ export default function AdminDashboard() {
   const saveProduct = async () => {
     const isNew = !form.id;
     const id = isNew ? Math.max(0, ...products.map((p) => p.id || 0)) + 1 : form.id;
-    const payload = { ...form, id, price: parseInt(form.price, 10) || 0, mrp: form.mrp ? parseInt(form.mrp, 10) : null };
+    const grossWeight = parseWeightGrams(form.grossWeight);
+    const netWeight = parseWeightGrams(form.netWeight);
+    if (grossWeight && netWeight && netWeight > grossWeight) {
+      notify("Net gold weight cannot exceed gross weight");
+      return;
+    }
+    const pricing = calculateProductPricing(form, settings);
+    if (isNew && !pricing) {
+      notify("Enter gross/net weight, VA%, and the selected karat rate first");
+      return;
+    }
+    const payload = {
+      ...form,
+      id,
+      karat: Number(form.karat),
+      grossWeight,
+      netWeight,
+      vaPercent: form.vaPercent === "" ? null : Number(form.vaPercent),
+      price: pricing?.total ?? parseAmount(form.price),
+    };
+    delete payload.mrp;
     if (JSON.stringify(payload).length > 1000000) {
       notify("Too many/large photos for one product — keep it to ~2 images");
       return;
@@ -241,9 +303,15 @@ export default function AdminDashboard() {
 
   const saveCategory = async () => {
     if (!catForm.name.trim()) { notify("Category needs a name"); return; }
-    const slug = catForm.slug || slugify(catForm.name);
+    const keepLegacy = catForm.parentSlug === "__legacy__";
+    const parentSlug = keepLegacy ? "" : catForm.parentSlug || "";
+    const slug = catForm.slug || (parentSlug ? `${parentSlug}-${slugify(catForm.name)}` : slugify(catForm.name));
     if (!catForm.slug && cats.find((c) => c.slug === slug)) { notify("Category already exists"); return; }
     const record = { name: catForm.name.trim(), slug, line: catForm.line || "", image: catForm.image || "" };
+    if (!keepLegacy) {
+      record.type = parentSlug ? "subcategory" : "main";
+      if (parentSlug) record.parentSlug = parentSlug;
+    }
     const prev = cats;
     const draft = catForm;
     const isEdit = !!catForm.slug;
@@ -255,8 +323,13 @@ export default function AdminDashboard() {
   };
 
   const removeCategory = async (slug) => {
+    if (cats.some((category) => category.parentSlug === slug)) {
+      notify("Remove its subcategories before deleting this collection");
+      return;
+    }
     if (!window.confirm("Delete this category? It must have no products in it.")) return;
-    const count = products.filter((p) => p.category === slug).length;
+    const descendants = getCategoryDescendantSlugs(cats, slug);
+    const count = products.filter((p) => p.category === slug || descendants.has(p.category)).length;
     if (count) { notify(`${count} products still use this category`); return; }
     const prev = cats;
     setCats(cats.filter((c) => c.slug !== slug));
@@ -271,9 +344,13 @@ export default function AdminDashboard() {
     setSeeding(true);
     try {
       const batch = writeBatch(db);
-      mock.PRODUCTS.forEach((p) => batch.set(doc(db, "products", String(p.id)), p));
+      mock.PRODUCTS.forEach((p) => {
+        const product = { ...p };
+        delete product.mrp;
+        batch.set(doc(db, "products", String(product.id)), product);
+      });
       mock.CATEGORIES.forEach((c) => batch.set(doc(db, "categories", c.slug), c));
-      batch.set(doc(db, "settings", "gold_rates"), { kt22: "₹7,245", kt24: "₹7,904" });
+      batch.set(doc(db, "settings", "gold_rates"), deriveGoldRatesFrom24(7904));
       batch.set(doc(db, "settings", "hero_slides"), { slides: mock.HERO_SLIDES });
       await batch.commit();
       await load();
@@ -284,24 +361,108 @@ export default function AdminDashboard() {
     setSeeding(false);
   };
 
-  const visible = products.filter((p) =>
-    (filter === "all" || p.category === filter) && (!offersOnly || (p.mrp && p.mrp > p.price))
+  const productCategories = cats.filter((category) =>
+    !isMainCategory(category) || products.some((product) => product.category === category.slug)
   );
+  const collectionCategories = productCategories.filter((category) =>
+    collectionFilter === "all" || getCategoryGender(category, cats) === collectionFilter
+  );
+  const visible = products.filter((product) => {
+    const category = cats.find((item) => item.slug === product.category);
+    return (collectionFilter === "all" || getCategoryGender(category, cats) === collectionFilter) &&
+      (filter === "all" || product.category === filter);
+  });
+  const defaultProductCategory = collectionCategories.find((category) => category.parentSlug || !isMainCategory(category))?.slug
+    ?? collectionCategories[0]?.slug
+    ?? productCategories[0]?.slug
+    ?? "";
+  const exportProducts = () => {
+    const exportData = {
+      exportedAt: new Date().toISOString(),
+      products: products.map((product) => {
+        const { mrp, ...record } = product;
+        const category = cats.find((item) => item.slug === product.category);
+        const parent = category?.parentSlug ? cats.find((item) => item.slug === category.parentSlug) : null;
+        return {
+          ...record,
+          categoryName: category?.name || product.category,
+          parentCollection: parent?.name || null,
+          currentPrice: getPrice(product),
+          pricingBreakdown: getPricing(product),
+        };
+      }),
+    };
+    downloadTextFile(`bagmar-products-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(exportData, null, 2), "application/json");
+  };
+  const exportProductsCsv = () => {
+    const columns = [
+      "id", "name", "categorySlug", "categoryName", "parentCollection", "material", "karat",
+      "grossWeightGrams", "netGoldWeightGrams", "valueAdditionPercent", "currentPrice",
+      "goldValue", "valueAdditionAmount", "gstAmount", "description", "featured", "images",
+    ];
+    const rows = products.map((product) => {
+      const pricing = getPricing(product);
+      const category = cats.find((item) => item.slug === product.category);
+      const parent = category?.parentSlug ? cats.find((item) => item.slug === category.parentSlug) : null;
+      return [
+        product.id,
+        product.name,
+        product.category,
+        category?.name || product.category,
+        parent?.name,
+        product.material,
+        product.karat,
+        product.grossWeight,
+        product.netWeight,
+        product.vaPercent,
+        getPrice(product),
+        pricing?.goldValue,
+        pricing?.vaAmount,
+        pricing?.gstAmount,
+        product.description,
+        product.featured,
+        product.images,
+      ];
+    });
+    const csv = [columns, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n");
+    downloadTextFile(`bagmar-products-${new Date().toISOString().slice(0, 10)}.csv`, `\uFEFF${csv}`, "text/csv;charset=utf-8");
+  };
+  const getPricing = (product) => calculateProductPricing(product, settings);
+  const getPrice = (product) => getPricing(product)?.total ?? product.price;
+  const editProduct = (product) => {
+    const previousWeight = parseWeightGrams(product.weight) ?? "";
+    setForm({
+      ...product,
+      karat: getProductKarat(product) ?? 22,
+      grossWeight: product.grossWeight ?? previousWeight,
+      netWeight: product.netWeight ?? previousWeight,
+      vaPercent: product.vaPercent ?? "",
+    });
+  };
   const catName = (slug) => cats.find((c) => c.slug === slug)?.name || slug;
-  const catCount = (slug) => products.filter((p) => p.category === slug).length;
+  const catCount = (slug) => {
+    const descendants = getCategoryDescendantSlugs(cats, slug);
+    return products.filter((product) => product.category === slug || descendants.has(product.category)).length;
+  };
+  const mainCategories = getPrimaryMainCategories(cats);
+  const primaryMainSlugs = new Set(mainCategories.map((category) => category.slug));
+  const visibleCategories = categoryView === "main"
+    ? mainCategories
+    : categoryView === "subcategories"
+      ? cats.filter((category) => category.parentSlug && (categoryParentFilter === "all" || category.parentSlug === categoryParentFilter))
+      : categoryView === "standalone"
+        ? cats.filter((category) => !category.parentSlug && !primaryMainSlugs.has(category.slug))
+        : cats;
 
   if (checking || !me) return <main className="min-h-screen bg-neutral-100 flex items-center justify-center font-jost text-sm text-neutral-500">Loading…</main>;
 
-  const discount = form && form.mrp && form.price && Number(form.mrp) > Number(form.price)
-    ? Math.round(((Number(form.mrp) - Number(form.price)) / Number(form.mrp)) * 100)
-    : 0;
-
   const stats = [
     { label: "Pieces", value: products.length },
-    { label: "Live Offers", value: products.filter((p) => p.mrp && p.mrp > p.price).length },
+    { label: "Auto Priced", value: products.filter((p) => getPricing(p)).length },
     { label: "Featured", value: products.filter((p) => p.featured).length },
     { label: "Categories", value: cats.length },
   ];
+  const formPricing = form ? calculateProductPricing(form, settings) : null;
 
   return (
     <main data-testid="admin-dashboard" className="min-h-screen bg-neutral-100 md:flex">
@@ -402,12 +563,15 @@ export default function AdminDashboard() {
 
           <Card id="rates" title="Today's Gold Rate" sub="Shown on the ticker and hero — updates the website instantly." testid="rates-card"
             action={<button data-testid="rates-save-btn" onClick={saveRates} disabled={saving} className={btnWine}>{saving ? "Saving…" : "Publish Rates"}</button>}>
-            <div className="grid grid-cols-2 gap-4 max-w-md">
-              <Field label="22KT / gram">
-                <input data-testid="rate-22-input" value={settings.kt22} onChange={(e) => setSettings({ ...settings, kt22: e.target.value })} className={inputCls} />
-              </Field>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl">
               <Field label="24KT / gram">
-                <input data-testid="rate-24-input" value={settings.kt24} onChange={(e) => setSettings({ ...settings, kt24: e.target.value })} className={inputCls} />
+                <input data-testid="rate-24-input" type="number" min="0" step="0.01" value={settings.kt24} onChange={(e) => setSettings(deriveGoldRatesFrom24(e.target.value))} className={inputCls} />
+              </Field>
+              <Field label="22KT / gram · Auto (22/24)">
+                <input data-testid="rate-22-input" type="number" value={settings.kt22} readOnly aria-readonly="true" className={`${inputCls} bg-neutral-100 text-neutral-500`} />
+              </Field>
+              <Field label="18KT / gram · Auto (18/24)">
+                <input data-testid="rate-18-input" type="number" value={settings.kt18} readOnly aria-readonly="true" className={`${inputCls} bg-neutral-100 text-neutral-500`} />
               </Field>
             </div>
           </Card>
@@ -436,14 +600,25 @@ export default function AdminDashboard() {
           </Card>
 
           <Card id="categories" title="Categories" sub="Collections shown across the website. A category can be removed only when it has no products." testid="categories-card"
-            action={<button data-testid="category-add-btn" onClick={() => setCatForm({ ...EMPTY_CAT })} className="inline-flex items-center gap-2 bg-ink text-gold-light rounded-lg px-5 py-3 font-jost text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-wine transition-colors"><FolderPlus size={13} /> Add Category</button>}>
+            action={<div className="flex flex-wrap items-center gap-2">
+              <button data-testid="category-add-btn" onClick={() => setCatForm({ ...EMPTY_CAT })} className="inline-flex items-center gap-2 bg-ink text-gold-light rounded-lg px-5 py-3 font-jost text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-wine transition-colors"><FolderPlus size={13} /> Add Category</button>
+            </div>}>
             {catForm && (
-              <div data-testid="category-form" className="border border-neutral-200 rounded-lg bg-neutral-50 p-4 md:p-5 mb-5 grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-end">
+              <div data-testid="category-form" className="border border-neutral-200 rounded-lg bg-neutral-50 p-4 md:p-5 mb-5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
                 <Field label="Name">
                   <input data-testid="category-name-input" value={catForm.name} onChange={(e) => setCatForm({ ...catForm, name: e.target.value })} placeholder="e.g. Anklets" className={inputCls} />
                 </Field>
                 <Field label="Tagline">
                   <input data-testid="category-line-input" value={catForm.line} onChange={(e) => setCatForm({ ...catForm, line: e.target.value })} placeholder="e.g. Grace for every step" className={inputCls} />
+                </Field>
+                <Field label="Parent collection">
+                  <select data-testid="category-parent-select" value={catForm.parentSlug} onChange={(e) => setCatForm({ ...catForm, parentSlug: e.target.value })} className={inputCls}>
+                    <option value="">Main collection</option>
+                    {catForm.slug && !catForm.type && (catForm.parentSlug === "__legacy__" || !catForm.parentSlug) && <option value="__legacy__">Keep standalone category</option>}
+                    {mainCategories.filter((category) => category.slug !== catForm.slug).map((category) => (
+                      <option key={category.slug} value={category.slug}>{category.name}</option>
+                    ))}
+                  </select>
                 </Field>
                 <div className="flex gap-2">
                   <label className={`${btnGhost} border-dashed cursor-pointer whitespace-nowrap`}>
@@ -451,7 +626,7 @@ export default function AdminDashboard() {
                     <input data-testid="category-upload-input" type="file" accept="image/*" className="hidden"
                       onChange={async (e) => { const f = e.target.files[0]; if (!f) return; const url = await uploadFile(f); if (url) setCatForm((c) => ({ ...c, image: url })); e.target.value = ""; }} />
                   </label>
-                  <button data-testid="category-save-btn" onClick={saveCategory} disabled={saving} className={btnWine}>Save</button>
+                  <button data-testid="category-save-btn" onClick={saveCategory} disabled={saving} className={btnWine}>{saving ? "Saving…" : "Save"}</button>
                   <button onClick={() => setCatForm(null)} className={btnGhost}>Cancel</button>
                 </div>
                 {catForm.image && (
@@ -465,10 +640,27 @@ export default function AdminDashboard() {
                 )}
               </div>
             )}
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <div role="group" aria-label="Filter category records" className="inline-flex flex-wrap border border-neutral-300 rounded-lg p-1">
+                {[{ id: "main", label: "Main Collections" }, { id: "subcategories", label: "Subcategories" }, { id: "standalone", label: "Standalone" }, { id: "all", label: "All" }].map((view) => (
+                  <button key={view.id} type="button" aria-pressed={categoryView === view.id} data-testid={`category-view-${view.id}`} onClick={() => setCategoryView(view.id)} className={`rounded-md px-3 py-2 font-jost text-[10px] font-medium uppercase tracking-wide transition-colors ${categoryView === view.id ? "bg-wine text-white" : "text-neutral-600 hover:text-wine"}`}>
+                    {view.label}
+                  </button>
+                ))}
+              </div>
+              {categoryView === "subcategories" && (
+                <select data-testid="subcategory-parent-filter" value={categoryParentFilter} onChange={(e) => setCategoryParentFilter(e.target.value)} className={`${inputCls} !w-auto`}>
+                  <option value="all">All Main Collections</option>
+                  {mainCategories.map((category) => <option key={category.slug} value={category.slug}>{category.name}</option>)}
+                </select>
+              )}
+              <span className="font-jost text-xs text-neutral-500">{visibleCategories.length} categories</span>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {cats.map((c) => {
+              {[...visibleCategories].sort((a, b) => Number(b.type === "main") - Number(a.type === "main")).map((c) => {
                 const pendingEdit = catForm && catForm.slug === c.slug;
                 const tileImg = pendingEdit && catForm.image ? catForm.image : c.image;
+                const parentCategory = cats.find((category) => category.slug === c.parentSlug);
                 return (
                 <div key={c.slug} data-testid={`category-row-${c.slug}`} className={`border rounded-lg overflow-hidden ${pendingEdit ? "border-gold ring-1 ring-gold/40" : "border-neutral-200"}`}>
                   <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
@@ -479,9 +671,12 @@ export default function AdminDashboard() {
                   </div>
                   <div className="p-3.5">
                     <p className="font-marcellus text-sm text-neutral-900 truncate">{c.name}</p>
+                    <p className="font-jost text-[10px] uppercase tracking-wide text-gold-dark mt-0.5">
+                      {parentCategory ? `Subcategory · ${parentCategory.name}` : primaryMainSlugs.has(c.slug) ? "Main collection" : isMainCategory(c) ? "Legacy collection record" : "Standalone category"}
+                    </p>
                     <p className="font-jost text-[11px] text-neutral-500 mt-0.5">{catCount(c.slug)} pieces</p>
                     <div className="mt-2 flex items-center gap-4">
-                      <button data-testid={`category-edit-${c.slug}`} onClick={() => setCatForm({ name: c.name, line: c.line || "", image: c.image || "", slug: c.slug })} className="inline-flex items-center gap-1.5 font-jost text-[11px] font-medium text-neutral-400 hover:text-wine transition-colors">
+                      <button data-testid={`category-edit-${c.slug}`} onClick={() => setCatForm({ name: c.name, line: c.line || "", image: c.image || "", slug: c.slug, type: isMainCategory(c) ? "main" : c.type, parentSlug: c.parentSlug || (isMainCategory(c) ? "" : "__legacy__") })} className="inline-flex items-center gap-1.5 font-jost text-[11px] font-medium text-neutral-400 hover:text-wine transition-colors">
                         <Pencil size={11} /> Edit
                       </button>
                       <button data-testid={`category-delete-${c.slug}`} onClick={() => removeCategory(c.slug)} className="inline-flex items-center gap-1.5 font-jost text-[11px] font-medium text-neutral-400 hover:text-wine transition-colors">
@@ -499,15 +694,34 @@ export default function AdminDashboard() {
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <h2 className="font-marcellus text-lg md:text-xl text-neutral-900">Catalogue · {visible.length} pieces</h2>
               <div className="flex flex-wrap items-center gap-2.5">
+                <div role="group" aria-label="Filter products by collection" className="inline-flex border border-neutral-300 rounded-lg p-1">
+                  {[{ id: "women", label: "Women" }, { id: "men", label: "Men" }, { id: "all", label: "All" }].map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      aria-pressed={collectionFilter === tab.id}
+                      data-testid={`catalogue-tab-${tab.id}`}
+                      onClick={() => { setCollectionFilter(tab.id); setFilter("all"); }}
+                      className={`rounded-md px-3 py-2 font-jost text-[11px] font-medium uppercase tracking-wide transition-colors ${collectionFilter === tab.id ? "bg-wine text-white" : "text-neutral-600 hover:text-wine"}`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
                 <select data-testid="filter-category" value={filter} onChange={(e) => setFilter(e.target.value)} className={`${inputCls} !w-auto`}>
                   <option value="all">All Categories</option>
-                  {cats.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                  {collectionCategories.map((c) => {
+                    const parent = cats.find((category) => category.slug === c.parentSlug);
+                    return <option key={c.slug} value={c.slug}>{parent ? `${parent.name} / ${c.name}` : c.name}</option>;
+                  })}
                 </select>
-                <button data-testid="filter-offers-btn" onClick={() => setOffersOnly(!offersOnly)}
-                  className={`rounded-lg px-4 py-2.5 font-jost text-[11px] font-medium tracking-[0.15em] uppercase border transition-colors ${offersOnly ? "bg-wine text-white border-wine" : "border-neutral-300 text-neutral-600 hover:border-wine hover:text-wine"}`}>
-                  Offers Only
+                <button data-testid="export-products-btn" onClick={exportProducts} className={btnGhost}>
+                  <Download size={14} className="inline-block mr-1.5" /> Export JSON
                 </button>
-                <button data-testid="product-add-btn" onClick={() => setForm({ ...EMPTY_FORM, category: cats[0]?.slug || "necklaces" })} className="inline-flex items-center gap-2 bg-ink text-gold-light rounded-lg px-4 py-2.5 font-jost text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-wine transition-colors">
+                <button data-testid="export-products-csv-btn" onClick={exportProductsCsv} className={btnGhost}>
+                  <Download size={14} className="inline-block mr-1.5" /> Export CSV
+                </button>
+                <button data-testid="product-add-btn" onClick={() => setForm({ ...EMPTY_FORM, category: defaultProductCategory })} className="inline-flex items-center gap-2 bg-ink text-gold-light rounded-lg px-4 py-2.5 font-jost text-[11px] font-medium tracking-[0.15em] uppercase hover:bg-wine transition-colors">
                   <Plus size={13} /> Add Product
                 </button>
               </div>
@@ -520,7 +734,7 @@ export default function AdminDashboard() {
                     <th className="px-5 py-3.5">Piece</th>
                     <th className="px-5 py-3.5">Category</th>
                     <th className="px-5 py-3.5">Price</th>
-                    <th className="px-5 py-3.5">Offer</th>
+                    <th className="px-5 py-3.5">Pricing</th>
                     <th className="px-5 py-3.5">Featured</th>
                     <th className="px-5 py-3.5 text-right">Actions</th>
                   </tr>
@@ -535,16 +749,14 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                       <td className="px-5 py-3 font-jost text-[13px] text-neutral-600">{catName(p.category)}</td>
-                      <td className="px-5 py-3 font-jost text-sm text-neutral-900">₹{p.price?.toLocaleString("en-IN")}</td>
+                      <td className="px-5 py-3 font-jost text-sm text-neutral-900">₹{getPrice(p)?.toLocaleString("en-IN")}</td>
                       <td className="px-5 py-3">
-                        {p.mrp && p.mrp > p.price ? (
-                          <span className="bg-wine text-white font-jost text-[10px] font-medium tracking-wide uppercase px-2.5 py-1 rounded">Save {Math.round(((p.mrp - p.price) / p.mrp) * 100)}%</span>
-                        ) : <span className="font-jost text-xs text-neutral-400">—</span>}
+                        <span className="font-jost text-xs text-neutral-500">{getPricing(p) ? "Live rate" : "Current price"}</span>
                       </td>
                       <td className="px-5 py-3">{p.featured ? <Star size={15} strokeWidth={1.4} className="text-gold-dark fill-gold/30" /> : <span className="font-jost text-xs text-neutral-400">—</span>}</td>
                       <td className="px-5 py-3">
                         <div className="flex justify-end gap-2">
-                          <button data-testid={`product-edit-${p.id}`} onClick={() => setForm({ ...p, mrp: p.mrp || "" })} className="p-2 border border-neutral-200 rounded-md hover:border-wine hover:text-wine transition-colors" aria-label="Edit"><Pencil size={14} strokeWidth={1.5} /></button>
+                          <button data-testid={`product-edit-${p.id}`} onClick={() => editProduct(p)} className="p-2 border border-neutral-200 rounded-md hover:border-wine hover:text-wine transition-colors" aria-label="Edit"><Pencil size={14} strokeWidth={1.5} /></button>
                           <button data-testid={`product-delete-${p.id}`} onClick={() => remove(p.id)} className="p-2 border border-neutral-200 rounded-md hover:border-wine hover:text-wine transition-colors" aria-label="Delete"><Trash2 size={14} strokeWidth={1.5} /></button>
                         </div>
                       </td>
@@ -562,15 +774,13 @@ export default function AdminDashboard() {
                     <p className="font-cormorant text-base leading-tight truncate text-neutral-900">{p.name}</p>
                     <p className="font-jost text-[11px] text-neutral-500 mt-0.5">{catName(p.category)}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="font-jost text-sm text-neutral-900">₹{p.price?.toLocaleString("en-IN")}</span>
-                      {p.mrp && p.mrp > p.price && (
-                        <span className="bg-wine text-white font-jost text-[9px] font-medium uppercase px-2 py-0.5 rounded">Save {Math.round(((p.mrp - p.price) / p.mrp) * 100)}%</span>
-                      )}
+                      <span className="font-jost text-sm text-neutral-900">₹{getPrice(p)?.toLocaleString("en-IN")}</span>
+                      <span className="font-jost text-[9px] uppercase text-neutral-400">{getPricing(p) ? "Live rate" : "Current price"}</span>
                       {p.featured && <Star size={12} strokeWidth={1.4} className="text-gold-dark fill-gold/30" />}
                     </div>
                   </div>
                   <div className="flex flex-col gap-2 shrink-0">
-                    <button data-testid={`product-edit-m-${p.id}`} onClick={() => setForm({ ...p, mrp: p.mrp || "" })} className="p-2.5 border border-neutral-200 rounded-md hover:border-wine hover:text-wine transition-colors" aria-label="Edit"><Pencil size={14} strokeWidth={1.5} /></button>
+                    <button data-testid={`product-edit-m-${p.id}`} onClick={() => editProduct(p)} className="p-2.5 border border-neutral-200 rounded-md hover:border-wine hover:text-wine transition-colors" aria-label="Edit"><Pencil size={14} strokeWidth={1.5} /></button>
                     <button data-testid={`product-delete-m-${p.id}`} onClick={() => remove(p.id)} className="p-2.5 border border-neutral-200 rounded-md hover:border-wine hover:text-wine transition-colors" aria-label="Delete"><Trash2 size={14} strokeWidth={1.5} /></button>
                   </div>
                 </div>
@@ -595,15 +805,27 @@ export default function AdminDashboard() {
                 </div>
                 <Field label="Category">
                   <select data-testid="editor-category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className={inputCls}>
-                    {cats.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                    {productCategories.map((c) => {
+                      const parent = cats.find((category) => category.slug === c.parentSlug);
+                      return <option key={c.slug} value={c.slug}>{parent ? `${parent.name} / ${c.name}` : c.name}</option>;
+                    })}
                   </select>
                 </Field>
                 <Field label="Material"><input data-testid="editor-material" value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} className={inputCls} /></Field>
-                <Field label="Net Weight"><input data-testid="editor-weight" value={form.weight} onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="e.g. 18.4 g" className={inputCls} /></Field>
-                <Field label="Selling Price (₹)"><input data-testid="editor-price" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className={inputCls} /></Field>
-                <Field label="Original Price MRP (₹) · creates offer"><input data-testid="editor-mrp" type="number" value={form.mrp} onChange={(e) => setForm({ ...form, mrp: e.target.value })} placeholder="Leave empty for no offer" className={inputCls} /></Field>
-                <div className="flex items-end">
-                  {discount > 0 && <span data-testid="editor-offer-preview" className="bg-wine text-white font-jost text-[10px] font-medium tracking-wide uppercase px-3 py-2 rounded">Live offer · Save {discount}%</span>}
+                <Field label="Karat">
+                  <select data-testid="editor-karat" value={form.karat} onChange={(e) => setForm({ ...form, karat: Number(e.target.value) })} className={inputCls}>
+                    {[18, 22, 24].map((karat) => <option key={karat} value={karat}>{karat}KT</option>)}
+                  </select>
+                </Field>
+                <Field label="Gross Weight (g)"><input data-testid="editor-gross-weight" type="number" min="0" step="0.001" value={form.grossWeight} onChange={(e) => setForm({ ...form, grossWeight: e.target.value })} className={inputCls} /></Field>
+                <Field label="Net Gold Weight (g)"><input data-testid="editor-net-weight" type="number" min="0" step="0.001" value={form.netWeight} onChange={(e) => setForm({ ...form, netWeight: e.target.value })} className={inputCls} /></Field>
+                <Field label="Value Addition (%)"><input data-testid="editor-va-percent" type="number" min="0" step="0.01" value={form.vaPercent} onChange={(e) => setForm({ ...form, vaPercent: e.target.value })} className={inputCls} /></Field>
+                <div data-testid="editor-price-preview" className="md:col-span-2 border border-neutral-200 bg-neutral-50 rounded-lg px-4 py-3 font-jost text-sm text-neutral-700">
+                  {formPricing
+                    ? <><p>Calculated price (incl. 3% GST): {mock.inr(formPricing.total)}</p><p className="text-xs text-neutral-500 mt-1">VA: {mock.inr(formPricing.vaAmount)} · GST: {mock.inr(formPricing.gstAmount)}</p></>
+                    : form.id && form.price
+                      ? `Current price retained until weights, VA%, and rate are configured: ${mock.inr(form.price)}`
+                      : "Enter the product weights, VA%, and today's karat rate to calculate the price."}
                 </div>
                 <div className="md:col-span-2">
                   <Field label="Description"><textarea data-testid="editor-description" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={`${inputCls} resize-none`} /></Field>

@@ -8,7 +8,9 @@ export default function CategoryPage() {
   const { slug } = useParams();
   const { categories, productsByCategory } = useCatalogue();
   const category = categories.find((c) => c.slug === slug);
+  const parentCategory = categories.find((c) => c.slug === category?.parentSlug);
   const products = productsByCategory(slug);
+  const subcategories = categories.filter((c) => c.parentSlug === slug);
 
   if (!category) {
     return (
@@ -29,11 +31,21 @@ export default function CategoryPage() {
         <div className="max-w-7xl mx-auto px-5 md:px-12 relative">
           <nav data-testid="breadcrumb" className="flex items-center gap-2 font-jost text-[10px] tracking-[0.3em] uppercase text-white/50 mb-6">
             <Link to="/" className="hover:text-gold-light transition-colors">Home</Link>
+            {parentCategory && <><ChevronRight size={11} /><Link to={`/collections/${parentCategory.slug}`} className="hover:text-gold-light transition-colors">{parentCategory.name}</Link></>}
             <ChevronRight size={11} /> <span className="text-gold-light">{category.name}</span>
           </nav>
           <h1 className="font-cinzel text-white text-4xl sm:text-5xl lg:text-6xl uppercase tracking-[0.12em]">{category.name}</h1>
           <div className="h-px w-20 bg-gold/60 my-6" />
           <p className="font-jost text-white/85 font-light max-w-lg leading-relaxed">{category.line} — {products.length} pieces in the current catalogue. Enquire on WhatsApp for today's rate.</p>
+          {subcategories.length > 0 && (
+            <nav aria-label={`${category.name} subcategories`} className="flex flex-wrap gap-2 mt-6">
+              {subcategories.map((subcategory) => (
+                <Link key={subcategory.slug} to={`/collections/${subcategory.slug}`} className="border border-white/25 px-3 py-2 font-jost text-[10px] tracking-wide text-white/80 hover:border-gold-light hover:text-gold-light transition-colors">
+                  {subcategory.name}
+                </Link>
+              ))}
+            </nav>
+          )}
         </div>
       </section>
 
