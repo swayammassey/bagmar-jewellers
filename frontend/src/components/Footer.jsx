@@ -2,9 +2,11 @@ import { Link } from "react-router-dom";
 import { Instagram, Facebook, Youtube, Phone, MapPin, Clock } from "lucide-react";
 import { Logo } from "./Logo";
 import { useCatalogue } from "../context/CatalogueContext";
+import { getPrimaryMainCategories } from "../lib/categoryTree";
 
 export const Footer = () => {
   const { store, categories } = useCatalogue();
+  const mainCategories = getPrimaryMainCategories(categories);
   return (
   <footer data-testid="site-footer" className="bg-ink text-white/70 relative overflow-hidden">
     <div className="h-px bg-gradient-to-r from-transparent via-gold to-transparent" />
@@ -28,11 +30,14 @@ export const Footer = () => {
       <div className="md:col-span-3">
         <h4 className="font-marcellus text-[10px] tracking-[0.4em] uppercase text-gold mb-7">Collections</h4>
         <ul className="space-y-3.5 font-jost text-sm">
-          {categories.map((c) => (
+          {mainCategories.map((c) => (
             <li key={c.slug}>
               <Link to={`/collections/${c.slug}`} data-testid={`footer-link-${c.slug}`} className="lux-link hover:text-gold-light transition-colors duration-300">{c.name}</Link>
             </li>
           ))}
+          <li>
+            <Link to="/#collections" data-testid="footer-all-collections" className="lux-link font-medium text-gold-light hover:text-white transition-colors duration-300">Browse all collections</Link>
+          </li>
         </ul>
       </div>
       <div className="md:col-span-5">
