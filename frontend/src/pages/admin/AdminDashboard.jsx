@@ -589,7 +589,7 @@ export default function AdminDashboard() {
                 {slides.map((s, i) => (
                   <div key={i} data-testid={`hero-slide-editor-${i}`} className="border border-neutral-200 rounded-lg p-4">
                     <div className="relative aspect-[4/3] overflow-hidden rounded-md border border-neutral-200 mb-3 bg-neutral-100">
-                      <img src={resolveImg(s.image)} alt={`Slide ${i + 1}`} className="w-full h-full object-cover" />
+                      <img src={resolveImg(s.image)} alt={`Slide ${i + 1}`} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                     </div>
                     <label className="block border border-dashed border-neutral-300 rounded-lg py-2.5 text-center font-jost text-[11px] font-medium text-neutral-500 cursor-pointer hover:border-wine hover:text-wine transition-colors mb-3">
                       Upload Photo
@@ -670,7 +670,7 @@ export default function AdminDashboard() {
                 return (
                 <div key={c.slug} data-testid={`category-row-${c.slug}`} className={`border rounded-lg overflow-hidden ${pendingEdit ? "border-gold ring-1 ring-gold/40" : "border-neutral-200"}`}>
                   <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
-                    {tileImg && <img src={resolveImg(tileImg)} alt={c.name} className="w-full h-full object-cover" />}
+                    {tileImg && <img src={resolveImg(tileImg)} alt={c.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />}
                     {pendingEdit && catForm.image && catForm.image !== c.image && (
                       <span className="absolute top-2 left-2 bg-wine text-white font-jost text-[9px] tracking-[0.15em] uppercase px-2 py-1 rounded">Unsaved photo</span>
                     )}
@@ -750,7 +750,7 @@ export default function AdminDashboard() {
                     <tr key={p.id} data-testid={`product-row-${p.id}`} className="border-b border-neutral-100 hover:bg-neutral-50 transition-colors">
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-3">
-                          <img src={resolveImg(p.images?.[0])} alt="" className="w-11 h-11 object-cover rounded-md border border-neutral-200" />
+                          <img src={resolveImg(p.images?.[0])} alt="" loading="lazy" decoding="async" className="w-11 h-11 object-cover rounded-md border border-neutral-200" />
                           <span className="font-cormorant text-base text-neutral-900">{p.name}</span>
                         </div>
                       </td>
@@ -775,7 +775,7 @@ export default function AdminDashboard() {
             <div className="md:hidden space-y-3">
               {visible.map((p) => (
                 <div key={p.id} data-testid={`product-card-admin-${p.id}`} className="bg-white border border-neutral-200 rounded-xl p-3.5 flex items-center gap-3.5 shadow-sm">
-                  <img src={resolveImg(p.images?.[0])} alt="" className="w-16 h-16 object-cover rounded-lg border border-neutral-200 shrink-0" />
+                  <img src={resolveImg(p.images?.[0])} alt="" loading="lazy" decoding="async" className="w-16 h-16 object-cover rounded-lg border border-neutral-200 shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-cormorant text-base leading-tight truncate text-neutral-900">{p.name}</p>
                     <p className="font-jost text-[11px] text-neutral-500 mt-0.5">{catName(p.category)}</p>

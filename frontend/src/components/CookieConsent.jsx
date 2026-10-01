@@ -5,7 +5,6 @@ import { db, firebaseReady } from "../lib/firebase";
 
 const CONSENT_COOKIE = "bagmar_cookie_consent";
 const CONSENT_MAX_AGE = 60 * 60 * 24 * 365;
-const COOKIE_SYNC_ERROR = "Your preference could not be recorded. Check your connection and try again.";
 
 const hasConsentChoice = () => document.cookie.split(";").some((cookie) => cookie.trim().startsWith(`${CONSENT_COOKIE}=`));
 
@@ -31,8 +30,14 @@ export const CookieConsent = () => {
       const secure = window.location.protocol === "https:" ? "; Secure" : "";
       document.cookie = `${CONSENT_COOKIE}=${choice}; Path=/; Max-Age=${CONSENT_MAX_AGE}; SameSite=Lax${secure}`;
       setVisible(false);
-    } catch {
-      setError(COOKIE_SYNC_ERROR);
+    } catch (saveError) {
+      if (saveError.code === "permission-denied") {
+        setError("Firestore denied this save. Publish the cookie-consent rule in Firebase Console, then try again.");
+      } else if (saveError.code === "unavailable" || saveError instanceof TypeError) {
+        setError("Connection problem. Check your internet connection and try again.");
+      } else {
+        setError("Your preference could not be saved. Please try again.");
+      }
     } finally {
       setSaving(false);
     }
@@ -57,7 +62,7 @@ export const CookieConsent = () => {
           {error && <p role="alert" className="mt-3 font-jost text-xs text-red-700">{error}</p>}
           <div className="mt-4 flex flex-wrap justify-end gap-2">
             <button type="button" disabled={saving} onClick={() => choose("essential")} className="min-h-10 border border-neutral-300 px-4 font-jost text-xs font-medium text-ink hover:border-emerald disabled:opacity-60">
-              {saving ? "Saving…" : "Essential only"}
+              {saving ? "Saving…" : "Reject optional"}
             </button>
             <button type="button" disabled={saving} onClick={() => choose("all")} className="min-h-10 bg-emerald px-4 font-jost text-xs font-semibold text-white hover:bg-emerald-dark disabled:opacity-60">
               {saving ? "Saving…" : "Allow all"}

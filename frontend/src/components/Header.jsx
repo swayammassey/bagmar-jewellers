@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, ChevronDown, MessageCircle, Phone, Clock, X, ArrowRight, Menu } from "lucide-react";
+import { MapPin, ChevronDown, MessageCircle, Phone, Clock, X, ArrowRight, Menu, CalendarDays } from "lucide-react";
 import { Logo } from "./Logo";
 import { SearchBar } from "./SearchBar";
 import { useCatalogue } from "../context/CatalogueContext";
@@ -48,6 +48,8 @@ export const Header = () => {
 
   const go = (to) => { setOpen(false); navigate(to); };
   const navCls = "uppercase text-ink/80 hover:text-wine transition-colors duration-300";
+  const bookingMessage = "Hi Bagmar Jewellers, I would like to book a store appointment. Please share the available dates and times.";
+  const bookingHref = `${store.whatsapp}?text=${encodeURIComponent(bookingMessage)}`;
 
   return (
     <header
@@ -59,7 +61,7 @@ export const Header = () => {
           <NavLink to="/" data-testid="nav-home" className={navCls}>Home</NavLink>
           <div className="relative" onMouseEnter={() => setMega(true)} onMouseLeave={() => setMega(false)}>
             <button data-testid="nav-collections" className={`flex items-center gap-1.5 py-10 ${navCls}`}>
-              Collections <ChevronDown size={12} strokeWidth={1.5} className={`transition-transform duration-300 ${mega ? "rotate-180" : ""}`} />
+              Shop <ChevronDown size={12} strokeWidth={1.5} className={`transition-transform duration-300 ${mega ? "rotate-180" : ""}`} />
             </button>
             <AnimatePresence>
               {mega && (
@@ -121,9 +123,11 @@ export const Header = () => {
           <Logo />
         </Link>
 
-        <div className="hidden lg:flex items-center justify-end gap-6 font-marcellus text-[11px] tracking-[0.25em]">
+        <div className="hidden lg:flex items-center justify-end gap-5 font-jost text-[11px] font-medium tracking-[0.12em]">
           <SearchBar variant="desktop" />
-          <Link to="/#visit" data-testid="nav-visit" className={navCls}>Visit Us</Link>
+          <a href={bookingHref} target="_blank" rel="noreferrer" data-testid="nav-book-btn" aria-label="Book an appointment on WhatsApp" className="inline-flex items-center gap-2 uppercase text-ink/80 transition-colors hover:text-wine">
+            <CalendarDays size={15} strokeWidth={1.5} /> Book
+          </a>
           <Link
             to="/#visit"
             data-testid="visit-store-btn"

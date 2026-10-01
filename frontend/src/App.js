@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import "@/App.css";
 import Lenis from "lenis";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
@@ -10,10 +10,17 @@ import { FloatingWhatsApp } from "@/components/FloatingWhatsApp";
 import { MobileActionBar } from "@/components/MobileActionBar";
 import { CookieConsent } from "@/components/CookieConsent";
 import Home from "@/pages/Home";
-import CategoryPage from "@/pages/CategoryPage";
-import ProductPage from "@/pages/ProductPage";
-import AdminLogin from "@/pages/admin/AdminLogin";
-import AdminDashboard from "@/pages/admin/AdminDashboard";
+
+const CategoryPage = lazy(() => import("@/pages/CategoryPage"));
+const ProductPage = lazy(() => import("@/pages/ProductPage"));
+const AdminLogin = lazy(() => import("@/pages/admin/AdminLogin"));
+const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
+
+const PageLoading = () => (
+  <main role="status" className="min-h-[40vh] flex items-center justify-center font-jost text-sm text-neutral-500">
+    Loading page…
+  </main>
+);
 
 const SiteLayout = ({ children }) => (
   <>
@@ -59,13 +66,15 @@ function App() {
       <div className="App bg-ivory min-h-screen pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:pb-0">
         <BrowserRouter>
           <ScrollManager />
-          <Routes>
-            <Route path="/" element={<SiteLayout><Home /></SiteLayout>} />
-            <Route path="/collections/:slug" element={<SiteLayout><CategoryPage /></SiteLayout>} />
-            <Route path="/product/:id" element={<SiteLayout><ProductPage /></SiteLayout>} />
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-          </Routes>
+          <Suspense fallback={<PageLoading />}>
+            <Routes>
+              <Route path="/" element={<SiteLayout><Home /></SiteLayout>} />
+              <Route path="/collections/:slug" element={<SiteLayout><CategoryPage /></SiteLayout>} />
+              <Route path="/product/:id" element={<SiteLayout><ProductPage /></SiteLayout>} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </div>
     </CatalogueProvider>
