@@ -9,7 +9,6 @@ import { resolveImg } from "../../context/CatalogueContext";
 import * as mock from "../../data/catalogue";
 import { calculateProductPricing, deriveGoldRatesFrom24, getProductKarat, parseAmount, parseWeightGrams } from "../../lib/pricing";
 import { getCategoryDescendantSlugs, getPrimaryMainCategories, isMainCategory } from "../../lib/categoryTree";
-import { AdminRecords } from "./AdminRecords";
 
 const EMPTY_FORM = { name: "", category: "necklaces", material: "22KT Gold", karat: 22, grossWeight: "", netWeight: "", vaPercent: "", price: 0, description: "", featured: false, images: [] };
 const EMPTY_CAT = { name: "", line: "", image: "", parentSlug: "" };
@@ -50,7 +49,6 @@ const NAV = [
   { id: "hero", label: "Hero Banner", icon: ImageIcon },
   { id: "categories", label: "Categories", icon: FolderOpen },
   { id: "catalogue", label: "Catalogue", icon: Gem },
-  { id: "requests", label: "Cookie Consent", icon: Database },
 ];
 
 const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -529,10 +527,6 @@ export default function AdminDashboard() {
                 <span className="font-jost text-[11px] font-medium uppercase tracking-wide text-neutral-500">{s.label}</span>
               </div>
             ))}
-          </div>
-
-          <div className="mb-8">
-            <AdminRecords />
           </div>
 
           {!loaded && (

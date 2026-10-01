@@ -8,7 +8,6 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { FloatingWhatsApp } from "@/components/FloatingWhatsApp";
 import { MobileActionBar } from "@/components/MobileActionBar";
-import { CookieConsent } from "@/components/CookieConsent";
 import Home from "@/pages/Home";
 
 const CategoryPage = lazy(() => import("@/pages/CategoryPage"));
@@ -30,7 +29,6 @@ const SiteLayout = ({ children }) => (
     <Footer />
     <FloatingWhatsApp />
     <MobileActionBar />
-    <CookieConsent />
   </>
 );
 
