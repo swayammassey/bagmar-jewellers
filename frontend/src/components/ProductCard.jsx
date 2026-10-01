@@ -1,39 +1,32 @@
 import { Link } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
 import { inr, resolveImg } from "../context/CatalogueContext";
 
 export const ProductCard = ({ product, testid }) => (
   <Link
     to={`/product/${product.id}`}
     data-testid={testid || `product-card-${product.id}`}
-    className="group block bg-white border border-gold/25 transition-[transform,box-shadow,border-color] duration-500 ease-out hover:-translate-y-1.5 hover:border-gold/50 hover:shadow-[0_28px_50px_-18px_rgba(197,160,89,0.4)]"
+    className="group block h-full bg-white border border-neutral-200 transition-colors duration-200 hover:border-emerald"
   >
-    <div className="p-1.5 md:p-2 border-b border-gold/20">
-      <div className="relative aspect-[4/5] overflow-hidden border border-gold/20">
+    <div className="relative aspect-[4/5] overflow-hidden bg-neutral-50">
         <img
           src={resolveImg(product.images[0])}
           alt={product.name}
           loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-105 group-hover:-rotate-1"
+          className="w-full h-full object-cover"
         />
-        <span
-          className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700"
-          style={{ background: "radial-gradient(340px circle at 50% 32%, rgba(229,193,88,0.28), transparent 70%)" }}
-        />
-      </div>
+        <span className="pointer-events-none absolute inset-0 bg-black/0 group-hover:bg-black/[0.025] transition-colors duration-200" />
     </div>
-    <div className="p-3.5 md:p-6">
-      <h3 className="font-cormorant text-lg md:text-xl leading-snug group-hover:text-wine transition-colors duration-500">{product.name}</h3>
-      <p className="font-jost text-[8px] md:text-[10px] tracking-[0.22em] md:tracking-[0.28em] uppercase text-ink/70 mt-1.5 md:mt-2">
-        {product.material} · {product.grossWeight && product.netWeight
-          ? `Gross ${product.grossWeight} g · Net ${product.netWeight} g`
-          : product.weight}
+    <div className="flex h-[150px] flex-col p-3.5 md:p-4">
+      <p className="font-jost text-[9px] font-medium tracking-[0.1em] uppercase text-neutral-500 truncate">{product.material}</p>
+      <h3 className="mt-1.5 font-cormorant text-xl md:text-2xl leading-tight text-ink group-hover:text-emerald transition-colors">{product.name}</h3>
+      <p className="font-jost text-[11px] text-neutral-500 mt-1 truncate">
+        {product.grossWeight && product.netWeight ? `Gross ${product.grossWeight} g · Net ${product.netWeight} g` : product.weight}
       </p>
-      <p className="mt-2.5 md:mt-4 flex items-baseline gap-2 md:gap-3 flex-wrap">
-        <span className="font-marcellus text-sm md:text-base text-ink tracking-wide">{inr(product.price)}</span>
-      </p>
-      <span className="lux-link inline-block mt-3 md:mt-5 font-marcellus text-[9px] md:text-[10px] tracking-[0.3em] md:tracking-[0.35em] uppercase text-gold-dark group-hover:text-wine transition-colors duration-500">
-        Enquire
-      </span>
+      <div className="mt-auto flex items-center justify-between gap-2 pt-3">
+        <span className="font-jost text-sm font-semibold text-ink">{inr(product.price)}</span>
+        <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald">View <ArrowRight size={13} /></span>
+      </div>
     </div>
   </Link>
 );

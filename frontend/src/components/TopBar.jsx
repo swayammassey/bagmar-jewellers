@@ -3,35 +3,16 @@ import { formatGoldRate } from "../lib/pricing";
 
 export const TopBar = () => {
   const { store } = useCatalogue();
-  const TICKER = [
-    { text: "Today's Gold Rate", chip: true },
-    ...(store.goldRates.kt18 ? [{ text: `18KT ${formatGoldRate(store.goldRates.kt18)} / g`, strong: true }] : []),
-    { text: `22KT ${formatGoldRate(store.goldRates.kt22)} / g`, strong: true },
-    { text: `24KT ${formatGoldRate(store.goldRates.kt24)} / g`, strong: true },
-    { text: "Indicative · Updated Daily" },
-    { text: `BIS Hallmarked · ${store.est}` },
-    { text: "Bolarum · Hyderabad" },
-    { text: store.phone },
-    { text: store.hours },
-  ];
-  const Row = () => (
-    <div className="flex shrink-0 items-center">
-      {TICKER.map((t, i) => (
-        <span key={i} className="flex items-center whitespace-nowrap">
-          <span className={`px-8 ${t.chip ? "text-gold-light font-semibold" : t.strong ? "font-semibold text-gold-light" : "text-white/70"}`}>{t.text}</span>
-          <span className="h-3 w-px bg-gold-light/25" />
-        </span>
-      ))}
-    </div>
-  );
   return (
     <div
       data-testid="top-bar"
-      className="bg-wine border-b border-wine-dark py-2.5 md:py-3 font-marcellus text-[10px] md:text-xs tracking-[0.22em] uppercase overflow-hidden"
+      className="bg-emerald text-white border-b border-emerald-dark font-jost"
     >
-      <div data-testid="gold-rate-ticker" className="flex w-max animate-marquee">
-        <Row />
-        <Row />
+      <div data-testid="gold-rate-ticker" className="max-w-7xl mx-auto min-h-9 px-4 md:px-8 grid grid-cols-3 sm:flex sm:items-center sm:justify-between gap-2 py-2 text-[9px] sm:text-[10px] tracking-[0.08em] sm:tracking-[0.12em] uppercase">
+        {store.goldRates.kt18 && <span className="text-center sm:text-left whitespace-nowrap">18KT <strong className="font-semibold">{formatGoldRate(store.goldRates.kt18)}</strong>/g</span>}
+        <span className="text-center sm:text-left whitespace-nowrap">22KT <strong className="font-semibold">{formatGoldRate(store.goldRates.kt22)}</strong>/g</span>
+        <span className="text-center sm:text-left whitespace-nowrap">24KT <strong className="font-semibold">{formatGoldRate(store.goldRates.kt24)}</strong>/g</span>
+        <span className="hidden md:block text-white/75">BIS Hallmarked · {store.est} · Bolarum</span>
       </div>
     </div>
   );

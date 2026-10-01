@@ -7,6 +7,8 @@ import { TopBar } from "@/components/TopBar";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { FloatingWhatsApp } from "@/components/FloatingWhatsApp";
+import { MobileActionBar } from "@/components/MobileActionBar";
+import { CookieConsent } from "@/components/CookieConsent";
 import Home from "@/pages/Home";
 import CategoryPage from "@/pages/CategoryPage";
 import ProductPage from "@/pages/ProductPage";
@@ -20,6 +22,8 @@ const SiteLayout = ({ children }) => (
     {children}
     <Footer />
     <FloatingWhatsApp />
+    <MobileActionBar />
+    <CookieConsent />
   </>
 );
 
@@ -52,8 +56,7 @@ function App() {
 
   return (
     <CatalogueProvider>
-      <div className="App bg-ivory min-h-screen">
-        <div className="grain-overlay" />
+      <div className="App bg-ivory min-h-screen pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:pb-0">
         <BrowserRouter>
           <ScrollManager />
           <Routes>

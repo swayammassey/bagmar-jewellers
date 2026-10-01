@@ -1,13 +1,14 @@
 import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, Gem, Landmark, Star, ArrowRight, MapPin, Phone, Clock, MessageCircle, Instagram } from "lucide-react";
-import { Reveal, LineDraw } from "../components/Reveal";
+import { Reveal } from "../components/Reveal";
 import { ProductCard } from "../components/ProductCard";
 import { useCatalogue } from "../context/CatalogueContext";
 import { getPrimaryMainCategories } from "../lib/categoryTree";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "../components/ui/carousel";
 
 export const GoldMarquee = ({ items }) => {
-  const words = items || ["Bagmar Jewellers", "BIS Hallmarked", "Est. 1897", "Bolarum · Hyderabad", "Handcrafted Heirlooms"];
+  const words = items || ["Bagmar Jewellers", "BIS Hallmarked", "A Legacy Since 1897", "Bolarum · Hyderabad", "Handcrafted Heirlooms"];
   const Row = () => (
     <div className="flex shrink-0 items-center">
       {words.map((w, i) => (
@@ -28,21 +29,14 @@ export const GoldMarquee = ({ items }) => {
   );
 };
 
-const Watermark = ({ numeral }) => (
-  <span className="font-cinzel absolute -top-20 -left-2 md:-left-6 text-[9rem] md:text-[15rem] leading-none text-gold/[0.06] select-none pointer-events-none">
-    {numeral}
-  </span>
-);
-
 const SectionHead = ({ numeral, kicker, title, italic }) => (
   <Reveal>
-    <div className="relative mb-14 md:mb-20">
-      <Watermark numeral={numeral} />
-      <span className="relative font-cinzel text-[11px] tracking-[0.45em] uppercase text-gold-dark">{kicker}</span>
-      <h2 className="relative font-cinzel text-3xl md:text-5xl tracking-[0.12em] uppercase mt-4 leading-tight">
-        {title} {italic && <span className="font-cormorant normal-case tracking-normal gold-foil-text">{italic}</span>}
+    <div className="relative mb-8 md:mb-10">
+      <span className="font-jost text-[10px] font-semibold tracking-[0.16em] uppercase text-emerald">{kicker}</span>
+      <h2 className="font-marcellus text-2xl md:text-4xl text-ink mt-2 leading-tight">
+        {title} {italic && <span className="font-cormorant italic font-medium text-emerald">{italic}</span>}
       </h2>
-      <LineDraw className="relative h-px w-24 bg-gold/60 mt-7" delay={0.25} />
+      <div className="h-px w-14 bg-gold mt-4" />
     </div>
   </Reveal>
 );
@@ -73,31 +67,28 @@ export const CategoriesGrid = () => {
   const visibleCategories = mainCategories.length
     ? mainCategories
     : categories.filter((category) => !category.parentSlug);
-  const tiles = buildTiles(visibleCategories.length);
   return (
-  <section data-testid="categories-section" className="py-24 md:py-36">
+  <section id="collections" data-testid="categories-section" className="py-14 md:py-20 bg-neutral-50 border-y border-neutral-200">
     <div className="max-w-7xl mx-auto px-5 md:px-12">
-      <SectionHead numeral="I" kicker="Shop by Category" title="Find your" italic="piece" />
-      <div className="grid grid-cols-2 md:grid-cols-12 gap-3 md:gap-5">
+      <div className="flex items-end justify-between gap-4">
+        <SectionHead numeral="I" kicker="Shop the collections" title="Find your" italic="piece" />
+        <span className="hidden sm:block mb-9 text-sm text-neutral-500">Four curated collections · Bolarum, Hyderabad</span>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
         {visibleCategories.map((c, i) => (
-          <Reveal key={c.slug} delay={i * 0.07} className={tiles[i]}>
+          <Reveal key={c.slug} delay={i * 0.04}>
             <Link
               to={`/collections/${c.slug}`}
               data-testid={`category-tile-${c.slug}`}
-              className="group relative block w-full h-full overflow-hidden"
+              className="group block h-full bg-white border border-neutral-200 hover:border-emerald transition-colors"
             >
-              <img
-                src={c.image}
-                alt={c.name}
-                loading="lazy"
-                className="w-full h-full object-cover transition-transform duration-[1500ms] ease-[cubic-bezier(0.25,0.46,0.45,0.94)] group-hover:scale-105 group-hover:-rotate-1"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
-              <div className="absolute inset-2.5 md:inset-4 border border-white/30 pointer-events-none transition-colors duration-700 group-hover:border-gold-light/60" />
-              <div className="absolute inset-x-0 bottom-0 p-4 md:p-8">
-                <span className="block h-px w-8 md:w-10 bg-gold-light mb-2.5 md:mb-4 transition-all duration-700 group-hover:w-16 md:group-hover:w-24" />
-                <h3 className="font-marcellus text-white text-base sm:text-lg md:text-2xl tracking-[0.06em]">{c.name}</h3>
-                <p className="font-jost text-white/85 text-[8px] md:text-[10px] tracking-[0.25em] md:tracking-[0.3em] uppercase mt-1.5 md:mt-2">{c.line}</p>
+              <div className="aspect-[4/3] overflow-hidden bg-neutral-100">
+                <img src={c.image} alt={c.name} loading="lazy" className="w-full h-full object-cover" />
+              </div>
+              <div className="p-3.5 sm:p-4">
+                <h3 className="font-marcellus text-sm sm:text-base text-ink group-hover:text-emerald transition-colors">{c.name}</h3>
+                <p className="mt-1 text-[10px] sm:text-xs text-neutral-500 line-clamp-2">{c.line}</p>
+                <p className="mt-3 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald">Explore <ArrowRight size={13} /></p>
               </div>
             </Link>
           </Reveal>
@@ -111,21 +102,26 @@ export const CategoriesGrid = () => {
 export const FeaturedStrip = () => {
   const { featured } = useCatalogue();
   return (
-  <section data-testid="featured-section" className="py-24 md:py-32 bg-cream/60 border-y border-gold/25">
+  <section data-testid="featured-section" className="py-14 md:py-20 bg-white border-b border-neutral-200">
     <div className="max-w-7xl mx-auto px-5 md:px-12">
-      <div className="flex items-end justify-between gap-6">
-        <SectionHead numeral="II" kicker="Featured Collection" title="The signature" italic="edit" />
-        <span className="hidden md:flex items-center gap-2 font-marcellus text-[10px] tracking-[0.35em] uppercase text-ink/70 mb-4 shrink-0">
-          Scroll <ArrowRight size={14} strokeWidth={1.5} />
-        </span>
-      </div>
-      <div data-testid="featured-scroll" className="flex gap-6 overflow-x-auto no-scrollbar snap-x snap-mandatory pb-4 -mx-5 px-5 md:mx-0 md:px-0">
-        {featured.map((prod, i) => (
-          <Reveal key={prod.id} delay={i * 0.06} className="snap-start shrink-0 w-[270px] md:w-[310px]">
-            <ProductCard product={prod} testid={`featured-card-${prod.id}`} />
-          </Reveal>
-        ))}
-      </div>
+      <Carousel opts={{ align: "center", loop: true }}>
+        <div className="flex items-end justify-between gap-4">
+          <SectionHead numeral="II" kicker="Featured Collection" title="The signature" italic="edit" />
+          <div className="mb-8 flex shrink-0 gap-2 md:mb-10">
+            <CarouselPrevious aria-label="Previous featured products" className="static h-9 w-9 translate-y-0 rounded-none border-neutral-300 text-ink hover:bg-neutral-50" />
+            <CarouselNext aria-label="Next featured products" className="static h-9 w-9 translate-y-0 rounded-none border-neutral-300 text-ink hover:bg-neutral-50" />
+          </div>
+        </div>
+        <CarouselContent data-testid="featured-scroll" className="-ml-2 pb-4">
+          {featured.map((prod, i) => (
+            <CarouselItem key={prod.id} className="basis-[286px] pl-2 pr-2 md:basis-[326px]">
+              <Reveal delay={i * 0.06}>
+                <ProductCard product={prod} testid={`featured-card-${prod.id}`} />
+              </Reveal>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
     </div>
   </section>
   );
@@ -134,7 +130,7 @@ export const FeaturedStrip = () => {
 const TRUST = [
   { icon: BadgeCheck, title: "BIS Hallmarked", sub: "100% certified gold" },
   { icon: Gem, title: "Certified Diamonds", sub: "Gemological Institute of America (GIA) & International Gemological Institute (IGI) certified" },
-  { icon: Landmark, title: "Est. 1897", sub: "Five generations of craft" },
+  { icon: Landmark, title: "1897 Legacy", sub: "Five generations of craft" },
   { icon: Star, title: "4.2 Rated", sub: "Google reviews, Bolarum" },
 ];
 
@@ -143,8 +139,8 @@ export const TrustBar = () => (
     <div className="max-w-7xl mx-auto px-5 md:px-12 py-14 md:py-16 grid grid-cols-2 lg:grid-cols-4 gap-y-12 lg:gap-y-0 lg:divide-x lg:divide-gold/25">
       {TRUST.map((t, i) => (
         <Reveal key={t.title} delay={i * 0.1}>
-          <div data-testid={`trust-item-${i}`} className="group text-center px-4 transition-transform duration-500 hover:-translate-y-1">
-            <t.icon size={24} strokeWidth={1} className="text-gold-dark mx-auto transition-all duration-500 group-hover:scale-125 group-hover:text-wine" />
+          <div data-testid={`trust-item-${i}`} className="group text-center px-4">
+            <t.icon size={24} strokeWidth={1.5} className="text-emerald-800 mx-auto transition-colors duration-200 group-hover:text-wine" />
             <h3 className="font-cinzel text-sm tracking-[0.3em] uppercase mt-5">{t.title}</h3>
             <p className="font-jost text-ink/70 text-xs mt-2">{t.sub}</p>
           </div>
@@ -173,7 +169,7 @@ export const Heritage = () => {
               <img src={storeImage} alt="Bagmar Jewellers store" loading="lazy" className="w-full aspect-[4/5] object-cover" />
               <div className="absolute bottom-5 left-5 bg-wine text-white px-6 py-4">
                 <span className="font-marcellus text-2xl block tracking-widest">1897</span>
-                <span className="font-jost text-[9px] tracking-[0.35em] uppercase">The Beginning</span>
+                <span className="font-jost text-[9px] tracking-[0.35em] uppercase">A Living Legacy</span>
               </div>
             </div>
           </div>
@@ -199,7 +195,7 @@ export const Heritage = () => {
         {CHAPTERS.map(([num, title, text], i) => (
           <Reveal key={num} delay={i * 0.1}>
             <div data-testid={`chapter-${num}`} className="group bg-white p-8 md:p-10 h-full transition-colors duration-500 hover:bg-cream/50">
-              <span className="font-marcellus text-4xl gold-foil-text inline-block transition-transform duration-500 group-hover:-translate-y-1">{num}</span>
+              <span className="font-marcellus text-4xl text-emerald-800 inline-block">{num}</span>
               <h3 className="font-marcellus text-lg tracking-[0.15em] uppercase mt-5 transition-colors duration-500 group-hover:text-wine">{title}</h3>
               <p className="font-jost text-sm text-ink/60 leading-relaxed mt-3">{text}</p>
               <span className="mt-6 block h-px w-8 bg-gold/50 transition-all duration-500 group-hover:w-16" />
@@ -233,7 +229,7 @@ export const InstagramSection = () => {
               target="_blank"
               rel="noreferrer"
               data-testid={`insta-brand-${i}`}
-              className="group block bg-white border border-gold/30 p-2 h-full transition-[transform,box-shadow] duration-500 hover:-translate-y-1.5 hover:shadow-[0_28px_50px_-18px_rgba(197,160,89,0.4)]"
+              className="group block bg-white border border-neutral-200 p-2 h-full transition-colors duration-200 hover:border-gold-dark"
             >
               <div className="border border-gold/20 p-8 md:p-11 h-full flex flex-col items-start">
                 <span className="w-14 h-14 rounded-full border border-gold/40 flex items-center justify-center text-gold-dark transition-colors duration-500 group-hover:bg-wine group-hover:text-white group-hover:border-wine">

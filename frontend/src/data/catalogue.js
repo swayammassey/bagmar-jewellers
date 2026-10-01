@@ -8,7 +8,7 @@ export const STORE = {
   phone: "+91 93919 00939",
   phoneHref: "tel:+919391900939",
   whatsapp: "https://wa.me/919391900939",
-  est: "Est. 1897",
+  est: "Legacy Since 1897",
   hours: "Open Daily · 10:30 AM – 9 PM",
   address: "Sadar Bazar, Opp. St. Ann's Boys School, Aditya Bank Colony, Bolarum, Hyderabad, Telangana 500010",
   rating: "4.2",

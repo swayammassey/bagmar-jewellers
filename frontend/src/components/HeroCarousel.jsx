@@ -1,36 +1,13 @@
-import { useEffect, useRef, useState } from "react";
-import { motion, useMotionValue, useSpring, useTransform, useScroll } from "framer-motion";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { useCatalogue } from "../context/CatalogueContext";
 import { formatGoldRate } from "../lib/pricing";
 import { Link } from "react-router-dom";
-import { MessageCircle, MapPin, BadgeCheck, Star } from "lucide-react";
-
-const MaskedLine = ({ children, delay = 0, className = "" }) => (
-  <span className={`block overflow-hidden pb-[0.5em] ${className}`}>
-    <motion.span
-      className="block"
-      initial={{ y: "110%" }}
-      animate={{ y: "0%" }}
-      transition={{ duration: 0.95, delay, ease: [0.22, 1, 0.36, 1] }}
-    >
-      {children}
-    </motion.span>
-  </span>
-);
+import { ArrowRight, BadgeCheck, ChevronLeft, ChevronRight, MapPin, Star } from "lucide-react";
 
 export const HeroCarousel = () => {
   const { store, heroSlides } = useCatalogue();
   const [active, setActive] = useState(0);
-  const sectionRef = useRef(null);
-
-  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
-  const watermarkY = useTransform(scrollYProgress, [0, 1], [0, -120]);
-  const watermarkOpacity = useTransform(scrollYProgress, [0, 1], [0.05, 0.14]);
-
-  const mx = useMotionValue(0);
-  const my = useMotionValue(0);
-  const rotateX = useSpring(useTransform(my, [-0.5, 0.5], [4, -4]), { stiffness: 60, damping: 18 });
-  const rotateY = useSpring(useTransform(mx, [-0.5, 0.5], [-5, 5]), { stiffness: 60, damping: 18 });
 
   useEffect(() => {
     const t = setInterval(() => setActive((a) => (a + 1) % heroSlides.length), 5500);
@@ -39,158 +16,63 @@ export const HeroCarousel = () => {
 
   const slide = heroSlides[active];
 
-  const handleTilt = (e) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    mx.set((e.clientX - r.left) / r.width - 0.5);
-    my.set((e.clientY - r.top) / r.height - 0.5);
-  };
-
   return (
-    <section ref={sectionRef} data-testid="hero-carousel" className="relative bg-ivory overflow-hidden">
-      <motion.span
-        style={{ y: watermarkY, opacity: watermarkOpacity }}
-        className="font-marcellus absolute -bottom-8 -right-4 text-[24vw] leading-none text-gold select-none pointer-events-none"
-      >
-        1897
-      </motion.span>
-
-      <div className="max-w-7xl mx-auto px-5 md:px-12 pt-8 pb-12 lg:py-6 grid lg:grid-cols-2 gap-8 lg:gap-12 items-center lg:min-h-[calc(100vh-8.5rem)]">
-        <div className="relative z-10 order-2 lg:order-1">
-          <motion.div
-            initial={{ opacity: 0, y: 32 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-            className="lg:bg-ivory lg:border lg:border-gold/35 lg:p-2 lg:shadow-[0_40px_90px_-30px_rgba(197,160,89,0.35)]"
-          >
-            <div className="lg:border lg:border-gold/25 p-1 md:p-8 lg:p-7">
-              <div className="flex items-center gap-4">
-                <motion.span
-                  className="h-px bg-gold origin-left"
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ duration: 0.9, delay: 0.2 }}
-                  style={{ width: "3rem" }}
-                />
-                <span data-testid="hero-kicker" className="font-jost text-[10px] md:text-[11px] tracking-[0.45em] uppercase text-gold-dark">
-                  {store.est} · Bolarum, Hyderabad
-                </span>
-              </div>
-
-              <h1
-                data-testid="hero-title"
-                className="font-marcellus text-ink text-4xl sm:text-5xl lg:text-5xl xl:text-6xl leading-[1.15] mt-5 lg:mt-4"
-              >
-                <MaskedLine delay={0.35}>Heirlooms in gold,</MaskedLine>
-                <MaskedLine delay={0.48}>crafted for</MaskedLine>
-                <MaskedLine delay={0.6}><span className="font-cormorant gold-foil-text">generations</span></MaskedLine>
-              </h1>
-
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.9, duration: 0.8 }}
-                className="font-jost text-ink/65 text-sm md:text-base leading-loose mt-6 lg:mt-4 max-w-md"
-              >
-                BIS hallmarked gold and certified diamonds from Bolarum's trusted house of jewellery. Browse the catalogue — enquire when a piece speaks to you.
-              </motion.p>
-
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.05, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                className="flex flex-wrap gap-4 mt-9 lg:mt-6"
-              >
-                <a
-                  href={store.whatsapp}
-                  target="_blank"
-                  rel="noreferrer"
-                  data-testid="hero-whatsapp-btn"
-                  className="btn-lux group bg-wine text-white px-8 py-4 font-jost text-[11px] tracking-[0.3em] uppercase"
-                >
-                  <span className="btn-fill bg-gold" />
-                  <span className="relative z-10 flex items-center gap-2 transition-colors duration-500 group-hover:text-ink">
-                    <MessageCircle size={15} strokeWidth={1.5} /> Enquire on WhatsApp
-                  </span>
-                </a>
-                <Link
-                  to="/#visit"
-                  data-testid="hero-visit-btn"
-                  className="btn-lux group border border-ink/25 text-ink px-8 py-4 font-jost text-[11px] tracking-[0.3em] uppercase"
-                >
-                  <span className="btn-fill bg-ink" />
-                  <span className="relative z-10 flex items-center gap-2 transition-colors duration-500 group-hover:text-gold-light">
-                    <MapPin size={15} strokeWidth={1.5} /> Visit Our Store
-                  </span>
-                </Link>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.2, duration: 0.8 }}
-                className="flex flex-wrap items-center gap-x-8 gap-y-3 mt-10 lg:mt-6 pt-7 lg:pt-5 border-t border-gold/25"
-              >
-                <span className="flex items-center gap-2 font-jost text-[10px] tracking-[0.25em] uppercase text-ink/70">
-                  <BadgeCheck size={14} strokeWidth={1.4} className="text-gold-dark" /> BIS Hallmarked
-                </span>
-                <span className="flex items-center gap-2 font-jost text-[10px] tracking-[0.25em] uppercase text-ink/70">
-                  <Star size={14} strokeWidth={1.4} className="text-gold-dark" /> 4.2 Google Rated
-                </span>
-                <span data-testid="hero-gold-rate" className="font-jost text-[10px] tracking-[0.25em] uppercase text-wine">
-                  Today · {store.goldRates.kt18 ? `18KT ${formatGoldRate(store.goldRates.kt18)}/g · ` : ""}22KT {formatGoldRate(store.goldRates.kt22)}/g · 24KT {formatGoldRate(store.goldRates.kt24)}/g
-                </span>
-              </motion.div>
+    <section data-testid="hero-carousel" className="bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-5 md:py-8 grid lg:grid-cols-[0.88fr_1.12fr] gap-8 lg:gap-12 items-center">
+        <div className="order-2 lg:order-1 py-2 lg:py-8">
+          <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            <p data-testid="hero-kicker" className="inline-flex items-center gap-2 text-emerald font-jost text-xs font-semibold tracking-[0.12em] uppercase">
+              <span className="w-7 h-px bg-gold-dark" /> Bagmar Jewellers · A Legacy Since 1897
+            </p>
+            <h1 data-testid="hero-title" className="mt-5 text-4xl sm:text-5xl xl:text-6xl leading-[1.04] tracking-[-0.02em] text-ink font-marcellus">
+              Gold & diamond
+              <span className="block mt-1 font-cormorant italic font-medium text-emerald">jewellery</span>
+            </h1>
+            <p className="mt-5 max-w-lg text-base leading-7 text-neutral-600">
+              Discover hallmarked gold and certified diamonds, selected for life’s most meaningful moments.
+            </p>
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <Link to="/#collections" data-testid="hero-shop-btn" className="inline-flex min-h-12 items-center justify-center gap-2 bg-emerald px-6 text-sm font-semibold text-white transition-colors hover:bg-emerald-dark">
+                Shop collections <ArrowRight size={16} />
+              </Link>
+              <Link to="/#visit" data-testid="hero-visit-btn" className="inline-flex min-h-12 items-center justify-center gap-2 border border-neutral-300 px-5 text-sm font-medium text-ink transition-colors hover:border-emerald hover:text-emerald">
+                <MapPin size={16} /> Visit our store
+              </Link>
+            </div>
+            <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 border-t border-neutral-200 pt-4 text-xs text-neutral-600">
+              <span className="inline-flex items-center gap-1.5"><BadgeCheck size={15} className="text-emerald" /> BIS hallmarked</span>
+              <span className="inline-flex items-center gap-1.5"><Star size={14} className="text-gold-dark" /> 4.2 Google rating</span>
+              <span data-testid="hero-gold-rate" className="inline-flex items-center gap-1.5">24KT {formatGoldRate(store.goldRates.kt24)}/g</span>
             </div>
           </motion.div>
         </div>
 
-        <div className="order-1 lg:order-2 relative" style={{ perspective: "1200px" }}>
-          <motion.div
-            initial={{ clipPath: "inset(0 0 100% 0)" }}
-            animate={{ clipPath: "inset(0 0 0% 0)" }}
-            transition={{ duration: 1.2, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
-            onMouseMove={handleTilt}
-            onMouseLeave={() => { mx.set(0); my.set(0); }}
-            className="border border-gold/30 p-2 bg-white"
-          >
-            <div className="relative h-[46vh] md:h-[60vh] lg:h-[calc(100vh-15rem)] lg:max-h-[600px] lg:min-h-[420px] border border-gold/20 overflow-hidden">
-              {heroSlides.map((s, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute inset-0"
-                  initial={false}
-                  animate={{ opacity: i === active ? 1 : 0 }}
-                  transition={{ duration: 1.4, ease: "easeInOut" }}
-                >
-                  <motion.img
-                    src={s.image}
-                    alt={s.title}
-                    className="w-full h-full object-cover"
-                    initial={false}
-                    animate={{ scale: i === active ? 1 : 1.1 }}
-                    transition={{ duration: 7, ease: "easeOut" }}
-                  />
-                </motion.div>
-              ))}
-              <div className="absolute bottom-0 inset-x-0 p-5 bg-gradient-to-t from-black/60 to-transparent">
-                <span data-testid="hero-slide-caption" className="font-cormorant text-white/90 text-lg md:text-xl">
-                  {slide.kicker} — {slide.title.toLowerCase()}
-                </span>
-              </div>
-            </div>
-          </motion.div>
-
-          <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 flex gap-2.5">
-            {heroSlides.map((_, i) => (
-              <button
-                key={i}
-                data-testid={`hero-dot-${i}`}
-                onClick={() => setActive(i)}
-                aria-label={`Slide ${i + 1}`}
-                className={`h-[2px] transition-all duration-500 ${i === active ? "w-10 bg-gold-dark" : "w-5 bg-gold/30 hover:bg-gold/60"}`}
+        <div className="order-1 lg:order-2 relative min-w-0">
+          <div className="relative aspect-[4/3] overflow-hidden bg-neutral-100">
+            {heroSlides.map((item, index) => (
+              <img
+                key={`${item.image}-${index}`}
+                src={item.image}
+                alt={item.title}
+                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${index === active ? "opacity-100" : "opacity-0"}`}
+                aria-hidden={index !== active}
               />
             ))}
+            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 bg-gradient-to-t from-black/65 via-black/20 to-transparent p-4 sm:p-6">
+              <p data-testid="hero-slide-caption" className="max-w-[75%] text-sm sm:text-base font-medium text-white">{slide.kicker} <span className="text-white/75">· {slide.title}</span></p>
+              <div className="flex shrink-0 gap-2">
+                <button data-testid="hero-prev" aria-label="Previous collection image" onClick={() => setActive((index) => (index - 1 + heroSlides.length) % heroSlides.length)} className="flex h-9 w-9 items-center justify-center border border-white/50 text-white transition-colors hover:bg-white hover:text-ink"><ChevronLeft size={17} /></button>
+                <button data-testid="hero-next" aria-label="Next collection image" onClick={() => setActive((index) => (index + 1) % heroSlides.length)} className="flex h-9 w-9 items-center justify-center border border-white/50 text-white transition-colors hover:bg-white hover:text-ink"><ChevronRight size={17} /></button>
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 flex items-center justify-between">
+            <span className="text-xs text-neutral-500">Explore the Bagmar collection</span>
+            <div className="flex gap-1.5" aria-label="Choose hero image">
+              {heroSlides.map((item, index) => (
+                <button key={item.title} data-testid={`hero-dot-${index}`} aria-label={`Show ${item.title}`} aria-pressed={index === active} onClick={() => setActive(index)} className={`h-1.5 transition-all ${index === active ? "w-6 bg-emerald" : "w-2 bg-neutral-300 hover:bg-neutral-500"}`} />
+              ))}
+            </div>
           </div>
         </div>
       </div>

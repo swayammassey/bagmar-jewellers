@@ -8,254 +8,140 @@ import { Lightbox } from "../components/Lightbox";
 import { useCatalogue, resolveImg } from "../context/CatalogueContext";
 
 export default function ProductPage() {
-  const { id } = useParams();
-  const { getProduct, productsByCategory, categoryName, inr, waLink, store } = useCatalogue();
-  const product = getProduct(id);
-  const [imgIndex, setImgIndex] = useState(0);
-  const [lightbox, setLightbox] = useState(false);
+      const { id } = useParams();
+      const { getProduct, productsByCategory, categoryName, inr, waLink, store } = useCatalogue();
+      const product = getProduct(id);
+      const [imgIndex, setImgIndex] = useState(0);
+      const [lightbox, setLightbox] = useState(false);
 
-  if (!product) {
-    return (
-      <main data-testid="product-not-found" className="py-32 text-center">
-        <h1 className="font-marcellus text-4xl tracking-widest">Piece not found</h1>
-        <Link to="/" className="lux-link text-wine font-marcellus text-[11px] tracking-[0.3em] uppercase mt-8 inline-block">Back to home</Link>
-      </main>
-    );
-  }
+      if (!product) {
+        return (
+          <main data-testid="product-not-found" className="py-32 text-center">
+            <h1 className="font-marcellus text-4xl text-ink">Piece not found</h1>
+            <Link to="/" className="mt-6 inline-flex text-emerald hover:underline">Back to home</Link>
+          </main>
+        );
+      }
 
-  const images = product.images.map(resolveImg);
-  const related = productsByCategory(product.category).filter((prod) => prod.id !== product.id).slice(0, 4);
-  const specs = [
-    { icon: Gem, label: "Material", value: product.material, testid: "product-material" },
-    ...(product.grossWeight && product.netWeight
-      ? [
-          { icon: Scale, label: "Gross Weight", value: `${product.grossWeight} g`, testid: "product-gross-weight" },
-          { icon: Scale, label: "Net Gold Weight", value: `${product.netWeight} g`, testid: "product-weight" },
-        ]
-      : [{ icon: Scale, label: "Weight", value: product.weight, testid: "product-weight" }]),
-    { icon: BadgeCheck, label: "Certification", value: "BIS Hallmarked", testid: "product-certification" },
-    { icon: Store, label: "Availability", value: "In-store · Bolarum", testid: "product-availability" },
-  ];
+      const images = product.images.map(resolveImg);
+      const related = productsByCategory(product.category).filter((item) => item.id !== product.id).slice(0, 4);
+      const specs = [
+        { icon: Gem, label: "Material", value: product.material, testid: "product-material" },
+        ...(product.grossWeight && product.netWeight
+          ? [
+              { icon: Scale, label: "Gross weight", value: `${product.grossWeight} g`, testid: "product-gross-weight" },
+              { icon: Scale, label: "Net gold weight", value: `${product.netWeight} g`, testid: "product-weight" },
+            ]
+          : [{ icon: Scale, label: "Weight", value: product.weight, testid: "product-weight" }]),
+        { icon: BadgeCheck, label: "Certification", value: "BIS Hallmarked", testid: "product-certification" },
+        { icon: Store, label: "Availability", value: "In-store · Bolarum", testid: "product-availability" },
+      ];
+      const next = () => setImgIndex((index) => (index + 1) % images.length);
+      const prev = () => setImgIndex((index) => (index - 1 + images.length) % images.length);
 
-  const next = () => setImgIndex((i) => (i + 1) % images.length);
-  const prev = () => setImgIndex((i) => (i - 1 + images.length) % images.length);
+      return (
+        <main data-testid="product-page" className="bg-white">
+          <section className="py-5 md:py-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
+              <nav data-testid="breadcrumb" className="flex flex-wrap items-center gap-2 text-xs text-neutral-500 mb-5 md:mb-7">
+                <Link to="/" className="hover:text-emerald">Home</Link>
+                <ChevronRight size={13} />
+                <Link to={`/collections/${product.category}`} className="hover:text-emerald">{categoryName(product.category)}</Link>
+                <ChevronRight size={13} />
+                <span className="text-ink">{product.name}</span>
+              </nav>
 
-  return (
-    <main data-testid="product-page">
-      <section className="py-8 md:py-14">
-        <div className="max-w-7xl mx-auto px-4 md:px-12">
-          <nav data-testid="breadcrumb" className="flex items-center gap-2 font-jost text-[10px] md:text-[11px] tracking-[0.25em] uppercase text-ink/60 mb-8 md:mb-10 flex-wrap">
-            <Link to="/" className="hover:text-wine transition-colors">Home</Link>
-            <ChevronRight size={11} />
-            <Link to={`/collections/${product.category}`} className="hover:text-wine transition-colors">{categoryName(product.category)}</Link>
-            <ChevronRight size={11} />
-            <span className="text-wine">{product.name}</span>
-          </nav>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-7 lg:gap-12 items-start">
+                <Reveal className="lg:col-span-7">
+                  <div className="flex flex-col-reverse md:flex-row gap-3">
+                    <div className="hidden md:flex flex-col gap-2 w-[76px] shrink-0">
+                      {images.map((image, index) => (
+                        <button key={image + index} data-testid={`gallery-thumb-${index}`} onClick={() => setImgIndex(index)} aria-label={`View image ${index + 1}`} className={`aspect-square overflow-hidden border ${index === imgIndex ? "border-emerald ring-1 ring-emerald" : "border-neutral-200 opacity-70 hover:opacity-100"}`}>
+                          <img src={image} alt={`${product.name} view ${index + 1}`} className="w-full h-full object-cover" />
+                        </button>
+                      ))}
+                    </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-14 items-start">
-            <Reveal className="lg:col-span-7">
-              <div className="flex gap-4">
-                <div className="hidden md:flex flex-col gap-3 w-20 shrink-0">
-                  {images.map((img, i) => (
-                    <button
-                      key={i}
-                      data-testid={`gallery-thumb-${i}`}
-                      onClick={() => setImgIndex(i)}
-                      className={`aspect-square overflow-hidden border transition-all duration-300 ${i === imgIndex ? "border-gold shadow-[0_8px_20px_-6px_rgba(197,160,89,0.5)]" : "border-gold/20 opacity-60 hover:opacity-100"}`}
-                    >
-                      <img src={img} alt={`${product.name} view ${i + 1}`} className="w-full h-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex-1">
-                  <div className="border border-gold/30 p-1.5 md:p-2 bg-white shadow-[0_30px_70px_-25px_rgba(197,160,89,0.4)]">
-                    <div
-                      data-testid="product-gallery-main"
-                      className="relative aspect-[4/5] overflow-hidden border border-gold/20 bg-cream cursor-grab active:cursor-grabbing"
-                    >
-                      <motion.div
-                        className="flex h-full"
-                        style={{ width: `${images.length * 100}%` }}
-                        drag="x"
-                        dragConstraints={{ left: 0, right: 0 }}
-                        dragElastic={0.12}
-                        onDragEnd={(e, info) => {
-                          if (info.offset.x < -60) next();
-                          else if (info.offset.x > 60) prev();
-                        }}
-                        animate={{ x: `-${imgIndex * (100 / images.length)}%` }}
-                        transition={{ type: "spring", stiffness: 280, damping: 32 }}
-                      >
-                        {images.map((img, i) => (
-                          <div key={i} className="h-full shrink-0" style={{ width: `${100 / images.length}%` }}>
-                            <img
-                              src={img}
-                              alt={`${product.name} view ${i + 1}`}
-                              draggable={false}
-                              className="w-full h-full object-cover pointer-events-none select-none"
-                            />
-                          </div>
-                        ))}
-                      </motion.div>
-
-                      <button
-                        data-testid="gallery-zoom-btn"
-                        aria-label="Open lightbox"
-                        onClick={() => setLightbox(true)}
-                        className="absolute bottom-4 right-4 bg-ink/60 hover:bg-ink/80 text-white p-2.5 transition-colors"
-                      >
-                        <ZoomIn size={15} strokeWidth={1.5} />
-                      </button>
-
-                      <span className="absolute top-4 right-4 bg-ink/55 text-white/90 font-jost text-[10px] tracking-[0.2em] px-2.5 py-1">
-                        {imgIndex + 1} / {images.length}
-                      </span>
-
-                      {images.length > 1 && (
-                        <>
-                          <button
-                            data-testid="gallery-prev"
-                            aria-label="Previous image"
-                            onClick={prev}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-ink p-2.5 shadow-lg transition-all"
-                          >
-                            <ChevronLeft size={18} strokeWidth={1.5} />
-                          </button>
-                          <button
-                            data-testid="gallery-next"
-                            aria-label="Next image"
-                            onClick={next}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white text-ink p-2.5 shadow-lg transition-all"
-                          >
-                            <ChevronRight size={18} strokeWidth={1.5} />
-                          </button>
-                        </>
-                      )}
+                    <div className="flex-1 min-w-0">
+                      <div data-testid="product-gallery-main" className="relative aspect-[4/5] max-h-[760px] overflow-hidden border border-neutral-200 bg-neutral-50">
+                        <motion.div className="flex h-full" style={{ width: `${images.length * 100}%` }} animate={{ x: `-${imgIndex * (100 / images.length)}%` }} transition={{ type: "spring", stiffness: 280, damping: 32 }}>
+                          {images.map((image, index) => (
+                            <div key={image + index} className="h-full shrink-0" style={{ width: `${100 / images.length}%` }}>
+                              <img src={image} alt={`${product.name} view ${index + 1}`} draggable={false} className="w-full h-full object-cover pointer-events-none select-none" />
+                            </div>
+                          ))}
+                        </motion.div>
+                        <button data-testid="gallery-zoom-btn" aria-label="Open lightbox" onClick={() => setLightbox(true)} className="absolute bottom-4 right-4 bg-white text-ink p-2.5 border border-neutral-200 hover:text-emerald">
+                          <ZoomIn size={17} />
+                        </button>
+                        <span className="absolute top-4 right-4 bg-white/95 text-neutral-600 text-xs px-2.5 py-1">{imgIndex + 1} / {images.length}</span>
+                        {images.length > 1 && <>
+                          <button data-testid="gallery-prev" aria-label="Previous image" onClick={prev} className="absolute left-3 top-1/2 -translate-y-1/2 bg-white text-ink p-2.5 border border-neutral-200 hover:text-emerald"><ChevronLeft size={18} /></button>
+                          <button data-testid="gallery-next" aria-label="Next image" onClick={next} className="absolute right-3 top-1/2 -translate-y-1/2 bg-white text-ink p-2.5 border border-neutral-200 hover:text-emerald"><ChevronRight size={18} /></button>
+                        </>}
+                      </div>
+                      <div className="flex md:hidden justify-center gap-2 mt-4">
+                        {images.map((image, index) => <button key={image + index} data-testid={`gallery-dot-${index}`} onClick={() => setImgIndex(index)} aria-label={`Image ${index + 1}`} aria-pressed={index === imgIndex} className={`h-1.5 transition-all ${index === imgIndex ? "w-6 bg-emerald" : "w-2 bg-neutral-300"}`} />)}
+                      </div>
                     </div>
                   </div>
+                </Reveal>
 
-                  <div className="flex md:hidden justify-center gap-2 mt-4">
-                    {images.map((_, i) => (
-                      <button
-                        key={i}
-                        data-testid={`gallery-dot-${i}`}
-                        onClick={() => setImgIndex(i)}
-                        aria-label={`Image ${i + 1}`}
-                        className={`h-[3px] transition-all duration-400 ${i === imgIndex ? "w-8 bg-gold-dark" : "w-4 bg-gold/30"}`}
-                      />
-                    ))}
-                  </div>
-                  <p className="md:hidden text-center font-jost text-[9px] tracking-[0.3em] uppercase text-ink/50 mt-3">Swipe to view more</p>
+                <div className="lg:col-span-5 lg:sticky lg:top-28">
+                  <Reveal delay={0.08}>
+                    <span className="text-xs font-semibold tracking-[0.12em] uppercase text-emerald">{categoryName(product.category)}</span>
+                    <h1 data-testid="product-name" className="font-marcellus text-3xl sm:text-4xl mt-2 leading-tight text-ink">{product.name}</h1>
+                    <div className="mt-5 bg-white border border-neutral-200 p-4 md:p-5">
+                      <span className="block text-xs text-neutral-500 mb-1">{product.pricing ? "Price · includes 3% GST" : "Current price"}</span>
+                      <span data-testid="product-price" className="text-3xl font-semibold text-ink">{inr(product.price)}</span>
+                    </div>
+                    {product.pricing && <dl data-testid="product-price-breakdown" className="mt-3 border-b border-neutral-200 pb-3 space-y-2 text-sm text-neutral-600">
+                      <div className="flex justify-between gap-4"><dt>Gold value · {product.pricing.netWeight} g · {product.pricing.karat}KT</dt><dd className="text-ink">{inr(product.pricing.goldValue)}</dd></div>
+                      <div className="flex justify-between gap-4"><dt>Value addition</dt><dd className="text-ink">{inr(product.pricing.vaAmount)}</dd></div>
+                      <div className="flex justify-between gap-4"><dt>GST · 3%</dt><dd className="text-ink">{inr(product.pricing.gstAmount)}</dd></div>
+                    </dl>}
+                    <p className="text-xs text-neutral-500 mt-2">Confirm today’s live rate on WhatsApp.</p>
+                    <p data-testid="product-description" className="text-neutral-600 leading-7 mt-5 text-sm">{product.description}</p>
+
+                    <div className="mt-6 divide-y divide-neutral-200 border-y border-neutral-200">
+                      {specs.map((spec) => <div key={spec.label} className="flex items-center gap-3 py-3">
+                        <spec.icon size={17} className="text-emerald shrink-0" />
+                        <span className="text-xs text-neutral-500">{spec.label}</span>
+                        <span data-testid={spec.testid} className="ml-auto text-right text-sm font-medium text-ink">{spec.value}</span>
+                      </div>)}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mt-5">
+                      <span className="inline-flex items-center gap-1.5 bg-emerald-light text-emerald text-[10px] font-medium px-3 py-1.5"><BadgeCheck size={13} /> BIS Hallmarked</span>
+                      <span className="inline-flex items-center gap-1.5 bg-neutral-100 text-neutral-700 text-[10px] font-medium px-3 py-1.5"><Landmark size={13} /> {store.est}</span>
+                      <span className="inline-flex items-center gap-1.5 bg-neutral-100 text-neutral-700 text-[10px] font-medium px-3 py-1.5"><Store size={13} /> On Display</span>
+                    </div>
+
+                    <div className="flex flex-col gap-2.5 mt-6">
+                      <a href={waLink(product)} target="_blank" rel="noreferrer" data-testid="enquire-whatsapp-btn" className="flex min-h-12 items-center justify-center gap-2 bg-emerald px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-dark">
+                        <MessageCircle size={17} /> Enquire on WhatsApp
+                      </a>
+                      <Link to="/#visit" data-testid="product-visit-btn" className="flex min-h-12 items-center justify-center gap-2 border border-neutral-300 px-6 py-3 text-sm font-medium text-ink hover:border-emerald hover:text-emerald">
+                        <MapPin size={17} /> Visit store to see it
+                      </Link>
+                    </div>
+                    <p className="text-neutral-500 text-xs mt-4 leading-relaxed">This piece is on display at our Sadar Bazar store — open daily, 10:30 AM to 9 PM.</p>
+                  </Reveal>
                 </div>
               </div>
-            </Reveal>
-
-            <div className="lg:col-span-5 lg:sticky lg:top-32">
-              <Reveal delay={0.12}>
-                <span className="font-marcellus text-[10px] tracking-[0.45em] uppercase text-gold-dark">{categoryName(product.category)}</span>
-                <h1 data-testid="product-name" className="font-marcellus text-3xl sm:text-4xl lg:text-[2.6rem] mt-4 leading-tight text-ink">{product.name}</h1>
-
-                <div className="mt-7 bg-cream/70 border border-gold/30 p-5 md:p-6 flex items-center justify-between gap-4">
-                  <div>
-                    <span className="font-jost text-[9px] tracking-[0.3em] uppercase text-ink/55 block mb-1.5">{product.pricing ? "Total Price · 3% GST Included" : "Current Price"}</span>
-                    <span data-testid="product-price" className="font-marcellus text-3xl text-ink tracking-wide">{inr(product.price)}</span>
-                  </div>
-                </div>
-                {product.pricing && (
-                  <dl data-testid="product-price-breakdown" className="mt-3 space-y-1.5 font-jost text-xs text-ink/70">
-                    <div className="flex justify-between gap-4"><dt>Gold value · {product.pricing.netWeight} g · {product.pricing.karat}KT</dt><dd>{inr(product.pricing.goldValue)}</dd></div>
-                    <div className="flex justify-between gap-4"><dt>Value addition</dt><dd>{inr(product.pricing.vaAmount)}</dd></div>
-                    <div className="flex justify-between gap-4"><dt>GST · 3%</dt><dd>{inr(product.pricing.gstAmount)}</dd></div>
-                  </dl>
-                )}
-                <p className="font-jost text-[10px] tracking-[0.2em] uppercase text-ink/55 mt-3">Confirm today's live rate on WhatsApp</p>
-
-                <p data-testid="product-description" className="font-jost text-ink/80 leading-loose mt-7 text-[15px]">{product.description}</p>
-
-                <div className="grid grid-cols-2 gap-3 mt-8">
-                  {specs.map((s) => (
-                    <div key={s.label} className="border border-gold/25 bg-white p-4">
-                      <s.icon size={16} strokeWidth={1.3} className="text-gold-dark" />
-                      <span className="block font-jost text-[9px] tracking-[0.28em] uppercase text-ink/55 mt-3">{s.label}</span>
-                      <span data-testid={s.testid} className="block font-marcellus text-[15px] text-ink mt-1">{s.value}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap gap-2.5 mt-7">
-                  <span className="inline-flex items-center gap-1.5 border border-gold/40 text-gold-dark font-jost text-[9px] tracking-[0.25em] uppercase px-3.5 py-2">
-                    <BadgeCheck size={12} strokeWidth={1.5} /> BIS Hallmarked
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 border border-gold/40 text-gold-dark font-jost text-[9px] tracking-[0.25em] uppercase px-3.5 py-2">
-                    <Landmark size={12} strokeWidth={1.5} /> {store.est}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 border border-gold/40 text-gold-dark font-jost text-[9px] tracking-[0.25em] uppercase px-3.5 py-2">
-                    <Store size={12} strokeWidth={1.5} /> On Display
-                  </span>
-                </div>
-
-                <div className="flex flex-col gap-3.5 mt-9">
-                  <a
-                    href={waLink(product)}
-                    target="_blank"
-                    rel="noreferrer"
-                    data-testid="enquire-whatsapp-btn"
-                    className="btn-lux group bg-wine text-white px-8 py-4 font-jost text-[11px] font-medium tracking-[0.3em] uppercase"
-                  >
-                    <span className="btn-fill bg-gold" />
-                    <span className="relative z-10 flex items-center justify-center gap-2 transition-colors duration-500 group-hover:text-ink">
-                      <MessageCircle size={15} strokeWidth={1.5} /> Enquire on WhatsApp
-                    </span>
-                  </a>
-                  <Link
-                    to="/#visit"
-                    data-testid="product-visit-btn"
-                    className="btn-lux group border border-gold text-gold-dark px-8 py-4 font-jost text-[11px] font-medium tracking-[0.3em] uppercase"
-                  >
-                    <span className="btn-fill bg-gold" />
-                    <span className="relative z-10 flex items-center justify-center gap-2 transition-colors duration-500 group-hover:text-ink">
-                      <MapPin size={15} strokeWidth={1.5} /> Visit Store to See It
-                    </span>
-                  </Link>
-                </div>
-                <p className="font-jost text-ink/60 text-[13px] mt-6 leading-relaxed">
-                  This piece is on display at our Sadar Bazar store — open daily, 10:30 AM to 9 PM.
-                </p>
-              </Reveal>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
 
-      <section data-testid="related-section" className="py-20 md:py-28 bg-cream/60 border-t border-gold/25">
-        <div className="max-w-7xl mx-auto px-4 md:px-12">
-          <Reveal>
-            <div className="relative mb-12">
-              <span className="font-marcellus absolute -top-16 -left-2 text-[8rem] md:text-[12rem] leading-none text-gold/[0.07] select-none pointer-events-none">VI</span>
-              <h2 className="relative font-marcellus text-2xl sm:text-3xl lg:text-4xl tracking-[0.1em] uppercase">More from {categoryName(product.category)}</h2>
-              <div className="relative h-px w-20 bg-gold/70 mt-6" />
+          <section data-testid="related-section" className="py-14 md:py-20 bg-neutral-50 border-t border-neutral-200">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10">
+              <Reveal><h2 className="font-marcellus text-2xl sm:text-3xl text-ink mb-7">More from {categoryName(product.category)}</h2></Reveal>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+                {related.map((item, index) => <Reveal key={item.id} delay={index * 0.04}><ProductCard product={item} testid={`related-card-${item.id}`} /></Reveal>)}
+              </div>
             </div>
-          </Reveal>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
-            {related.map((prod, i) => (
-              <Reveal key={prod.id} delay={i * 0.07} className={i % 2 === 1 ? "lg:translate-y-10" : ""}>
-                <ProductCard product={prod} testid={`related-card-${prod.id}`} />
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
+          </section>
 
-      {lightbox && (
-        <Lightbox
-          images={images}
-          index={imgIndex}
-          onClose={() => setLightbox(false)}
-          onPrev={prev}
-          onNext={next}
-        />
-      )}
-    </main>
-  );
-}
+          {lightbox && <Lightbox images={images} index={imgIndex} onClose={() => setLightbox(false)} onPrev={prev} onNext={next} />}
+        </main>
+      );
+    }

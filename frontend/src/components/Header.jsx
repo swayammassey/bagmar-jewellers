@@ -52,10 +52,10 @@ export const Header = () => {
   return (
     <header
       data-testid="site-header"
-      className="sticky top-0 z-40 backdrop-blur-xl bg-ivory/90 border-b border-gold/25"
+      className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-neutral-200"
     >
-      <div className="max-w-7xl mx-auto px-4 md:px-8 h-24 flex items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr]">
-        <nav className="hidden lg:flex items-center gap-8 font-marcellus text-[11px] tracking-[0.25em]">
+      <div className="relative max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between lg:grid lg:grid-cols-[1fr_auto_1fr]">
+        <nav className="hidden lg:flex items-center gap-7 font-jost text-[11px] font-medium tracking-[0.12em]">
           <NavLink to="/" data-testid="nav-home" className={navCls}>Home</NavLink>
           <div className="relative" onMouseEnter={() => setMega(true)} onMouseLeave={() => setMega(false)}>
             <button data-testid="nav-collections" className={`flex items-center gap-1.5 py-10 ${navCls}`}>
@@ -69,11 +69,11 @@ export const Header = () => {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 8 }}
                   transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute left-0 top-full w-[820px] max-w-[calc(100vw-32px)] bg-ivory border border-gold/30 shadow-[0_30px_60px_rgba(26,26,26,0.12)]"
+                  className="absolute left-0 top-full w-[820px] max-w-[calc(100vw-32px)] bg-white border border-neutral-200 shadow-[0_20px_45px_rgba(23,39,36,0.12)]"
                 >
                   <div className="max-h-[70vh] overflow-y-auto p-6 md:p-8 grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-5">
                     {menuCategories.map((c) => (
-                      <section key={c.slug} className="min-w-0 border-b border-gold/20 pb-5">
+                      <section key={c.slug} className="min-w-0 border-b border-neutral-200 pb-5">
                         <Link
                           to={`/collections/${c.slug}`}
                           data-testid={`mega-${c.slug}`}
@@ -117,7 +117,7 @@ export const Header = () => {
           <Link to="/#heritage" data-testid="nav-heritage" className={navCls}>Heritage</Link>
         </nav>
 
-        <Link to="/" className="lg:justify-self-center shrink-0" aria-label="Bagmar Jewellers home">
+        <Link to="/" className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0 lg:justify-self-center shrink-0" aria-label="Bagmar Jewellers home">
           <Logo />
         </Link>
 
@@ -136,9 +136,7 @@ export const Header = () => {
           </Link>
         </div>
 
-        {/* Mobile controls — search sits to the LEFT of the menu button */}
-        <div className="lg:hidden flex items-center gap-1.5">
-          <SearchBar variant="desktop" />
+        <div className="absolute inset-x-4 top-1/2 -translate-y-1/2 lg:hidden flex items-center justify-between">
           <button
             data-testid="mobile-menu-btn"
             className="relative z-[70] w-11 h-11 flex items-center justify-center text-ink"
@@ -158,6 +156,7 @@ export const Header = () => {
               )}
             </AnimatePresence>
           </button>
+          <SearchBar variant="desktop" />
         </div>
       </div>
 
@@ -170,9 +169,9 @@ export const Header = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="lg:hidden fixed inset-0 z-[60] bg-ivory flex flex-col"
+              className="lg:hidden fixed inset-0 z-[60] bg-white flex flex-col"
             >
-              <div className="h-24 px-5 flex items-center justify-between border-b border-gold/25">
+              <div className="h-20 px-5 flex items-center justify-between border-b border-neutral-200">
                 <Logo compact />
                 <button
                   data-testid="mobile-menu-close"
