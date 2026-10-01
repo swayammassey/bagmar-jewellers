@@ -195,7 +195,7 @@ export const Heritage = () => {
         {CHAPTERS.map(([num, title, text], i) => (
           <Reveal key={num} delay={i * 0.1}>
             <div data-testid={`chapter-${num}`} className="group bg-white p-8 md:p-10 h-full transition-colors duration-500 hover:bg-cream/50">
-              <span className="font-marcellus text-4xl text-emerald-800 inline-block">{num}</span>
+              <span className="font-marcellus text-4xl text-wine inline-block">{num}</span>
               <h3 className="font-marcellus text-lg tracking-[0.15em] uppercase mt-5 transition-colors duration-500 group-hover:text-wine">{title}</h3>
               <p className="font-jost text-sm text-ink/60 leading-relaxed mt-3">{text}</p>
               <span className="mt-6 block h-px w-8 bg-gold/50 transition-all duration-500 group-hover:w-16" />
